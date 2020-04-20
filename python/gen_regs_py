@@ -1,0 +1,265 @@
+#!/usr/bin/python
+
+import sys
+import os
+#sys.path.insert(0, '/cad/bin/wav_py')
+#sys.path.append('/prj/wavious/r0_tsmc28hpc/iceng/work/sbridges/scripts/py_regs/wav_py/')
+sys.path.append(os.path.join(sys.path[0],'sub'))
+import wav_bitfield as wbf
+import wav_register as wr
+import wav_reg_block as wrb
+
+
+
+from pyparsing import *
+
+import re
+import argparse as ap
+import textwrap
+
+############################
+# Globals
+############################
+reg_prefix = ''
+reg_block  = ''
+reg_infile = ''
+use_clock_mux = False
+for_dv     = False
+for_sphinx = False
+rb         = None
+debug      = False
+ahb        = False
+
+############################
+# PyParsing Setup Grammar
+############################
+rn    = Word(alphanums+'_').setResultsName('regname')
+rt    = oneOf("RW RO").setResultsName('regtype')
+rnotst= (Optional(Suppress(Literal('{')) + Literal('NO_REG_TEST') + Suppress(Literal('}')))).setResultsName('reg_no_test')
+rd    = Optional(Regex(".*")).setResultsName('regdesc')
+regpp = rn + rt + rnotst + rd
+
+bn   = Word(alphanums+'_').setResultsName('bfname')
+bt   = Optional(oneOf("RW") | oneOf("RO") | oneOf("W1C") | oneOf("WFIFO") | oneOf("RFIFO")).setResultsName('bftype')
+bl   = Word(nums).setResultsName('bflen')
+br   = oneOf("'b 'h 'd 'PAR:'b 'PAR:'h 'PAR:'d").setResultsName('bfrad')
+#brv  = Word(nums+'ABCDEFabcdef').setResultsName('bfrval')
+brv  = Word(alphanums+'_').setResultsName('bfrval')   #Changes to alphanums for param
+#bfr  = Combine(bl+br+brv).setResultsName('bfreset')
+#bfr  = (Combine(Word(nums) + oneOf("'b 'h 'd") + Word(nums+'ABCDEFabcdef'))).setResultsName('bfreset')
+bfr  = (Combine(Word(nums) + oneOf("'b 'h 'd  'PAR:'b 'PAR:'h 'PAR:'d") + Word(alphanums+'_'))).setResultsName('bfreset') #Changes to alphanums for param
+
+#DFT features. Only allowing decimal for now
+# Define with {<DFT_TYPE>:<val>|<DFT_TYPE>:<val>} '|' is a separator
+bfbsr       = (Literal('BSCAN:') + Word(nums).setResultsName('bscan_val') + Optional('|')).setResultsName('bscan')
+bfiddq      = (Literal('IDDQ:') + Word(nums).setResultsName('iddq_val') + Optional('|')).setResultsName('iddq')
+bfhiz       = (Literal('HIZ:') + Word(nums).setResultsName('hiz_val') + Optional('|')).setResultsName('hiz')
+bfcorescan  = (Literal('CORESCAN:') + Word(nums).setResultsName('core_scan_val') + Optional('|')).setResultsName('core_scan')
+bfdftall    = (Literal('DFT:') + Word(nums).setResultsName('dftall_val') + Optional('|')).setResultsName('dftall')
+bfbsflop    = (Literal('BFLOP') + Optional('|')).setResultsName('bsflop')
+any_dft_type = bfcorescan | bfbsr | bfiddq | bfhiz | bfdftall | bfbsflop
+
+bfdft= (Optional(Suppress(Literal('{')) + ZeroOrMore(any_dft_type) + Suppress(Literal('}')))).setResultsName('bfdft')
+
+
+bd   = Optional(Regex(".*")).setResultsName('bfdesc')
+bfpp = bn + bfr + bt + bfdft + bd
+#bfpp = bn + bfr + bt + bd
+
+
+##########################
+def parse_reg_infile(infile):
+  """Parses the input file and gets the register info"""
+  
+  curr_addr = 0
+  curreg    = None
+  
+  curlsb    = 0
+  
+  try:
+    os.path.isfile(infile)
+  except FileNotFoundError:
+    print("Error: blkfile '%s' doesn't seem to exist!" % bfile)
+    set_err()
+  else:
+    with open(infile) as f:
+      linenum = 1
+      for line in f:
+        line_is_good = 0
+        line = line.rstrip("\n\r")
+        if not line.startswith("#") and line.strip():
+          if debug:
+            print("working on line:\n--"+line)
+        
+          #########################
+          #Register
+          #########################
+          try:
+            r = regpp.parseString(line)
+            if r:
+              line_is_good = 1
+              #If curreg is != None, then old reg exists and should add to regblock
+              if curreg:
+                rb.add_reg(curreg)
+                curr_addr = curr_addr + 4
+                curlsb    = 0
+              
+              notest = False
+              if r.reg_no_test:
+                notest = True
+                
+              
+              curreg = wr.Register(r['regname'], ("'d"+str(curr_addr)), desc=r['regdesc'], rtype=r['regtype'], notest=notest)
+          except ParseException:
+            pass
+          
+          #########################
+          #Bitfield
+          #########################
+          try:
+            b = bfpp.parseString(line)
+            if b:
+              line_is_good = 1
+              is_rsvd      = 0
+              
+              #Name
+              if b.bfname:
+                bfname = b.bfname
+              else:
+                print("ERROR: No bitfield name for line: {}".format(line))
+              
+              #Type, default to register type if not defined, else override
+              if b.bftype:
+                bftype = b.bftype  
+              else:
+                bftype = curreg.rtype
+              
+              #Reset val
+              if b.bfreset:
+                bfreset = b['bfreset']
+              else:
+                print("ERROR: No bitfield reset value for line: {}".format(line))
+              
+              if b.bfdesc:
+                bfdesc = b.bfdesc
+              else:
+                bfdesc = ''
+                
+              
+              #Reserved Check
+              if bfname == "reserved" or bfname == "RESERVED":
+                  is_rsvd = 1
+                  bftype  = "RO"
+                            
+              
+              curbf = wbf.Bitfield(bfname, curlsb, bftype, bfreset, desc=bfdesc)
+              curbf.rsvd  = is_rsvd
+              curlsb= curlsb + curbf.length
+              
+              #DFT additions
+              if b.bfdft:
+                if b.bfdft.dftall:
+                  curbf.dftall = b.bfdft.dftall['dftall_val']
+                if b.bfdft.core_scan:
+                  curbf.core_scan = b.bfdft.core_scan['core_scan_val']
+                if b.bfdft.iddq:
+                  curbf.iddq = b.bfdft.iddq['iddq_val']
+                if b.bfdft.hiz:
+                  curbf.hiz = b.bfdft.hiz['hiz_val']
+                if b.bfdft.bscan:
+                  curbf.bscan = b.bfdft.bscan['bscan_val']
+                if b.bfdft.bsflop:
+                  curbf.bsflop = True
+                
+              curreg.add_bf(curbf)
+              
+          except ParseException:
+            pass
+      #Final reg add
+      rb.add_reg(curreg)
+
+##########################
+def get_args():
+  parser = ap.ArgumentParser(description="A tool for creating Registers",
+            epilog='For a more detailed explaination, please run: \nfirefox /cad/bin/Documents/gen_regs_py/html/index.html &')
+  parser.add_argument("-i", "-input_file",      help="Input file with register definitions", type=str)
+  parser.add_argument("-p", "-prefix",          help="Prefix for blocks (d2d, wmp)", type=str)
+  parser.add_argument("-b", "-block",           help="Block level (rx, tx, pll, etc.)", type=str)
+  parser.add_argument("-dv",                    help="Generates the intermediate DV for chip mapping", action='store_true')
+  parser.add_argument("-sphinx",                help="Generates Sphinx csv table for documentation", action='store_true')
+  parser.add_argument("-dbg",                   help="Adds debugging", action='store_true')
+  parser.add_argument("-ahb",                   help="Configures RTL output with AHB interface instead of APB", action='store_true')
+  
+  args = parser.parse_args()
+
+  if args.i:
+    global reg_infile
+    reg_infile = args.i
+  else:
+    print("Error: An input register file was not specified!")
+    parser.print_help(sys.stderr)
+    sys.exit(1)
+  
+  if args.p:
+    global reg_prefix
+    reg_prefix = args.p
+  else:
+    print("Error: Register prefix not specified!")
+    parser.print_help(sys.stderr)
+    sys.exit(1)
+  
+  
+  if args.b:
+    global reg_block
+    reg_block = args.b
+  else:
+    print("Error: Register block not specified!")
+    parser.print_help(sys.stderr)
+    sys.exit(1)
+  
+  #if args.cm:
+  #  global use_clock_mux
+  #  use_clock_mux = True
+  
+  if args.dv:
+    global for_dv
+    for_dv = True
+  
+  if args.sphinx:
+    global for_sphinx
+    for_sphinx = True
+  
+  if args.dbg:
+    global debug
+    debug = True
+    
+  if args.ahb:
+    global ahb
+    ahb = True
+    
+    
+############################
+# Run
+############################
+get_args()
+
+rb = wrb.RegBlock()
+rb.base_name = (reg_prefix+'_'+reg_block).upper()
+
+parse_reg_infile(reg_infile)
+
+
+rb.check_for_muxes()
+rb.run_checks()
+rb.create_debug_bus()
+
+if not for_dv:
+  if not for_sphinx:
+    rb.print_verilog(reg_prefix, reg_block, ahb)
+
+if for_dv:
+  rb.print_dv_file(reg_prefix, reg_block)
+  rb.print_ad_file(reg_prefix, reg_block)
+
+if for_sphinx:
+  rb.gen_sphinx_table()

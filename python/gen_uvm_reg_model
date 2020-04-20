@@ -1,0 +1,600 @@
+#!/usr/bin/python
+
+import sys
+import os
+#sys.path.insert(0, '/cad/bin/wav_py')
+sys.path.insert(0, 'sub')
+sys.path.append(os.path.join(sys.path[0],'sub'))
+#sys.path.insert(0, '/prj/wavious/r0_tsmc28hpc/iceng/work/sbridges/scripts/py_regs/wav_py')
+
+
+import wav_bitfield as wbf
+import wav_register as wr
+import wav_reg_block as wrb
+import wav_reg_system as wrs
+import wav_print as wp
+from wav_swi import *
+
+
+import re
+import argparse as ap
+import subprocess
+import glob
+
+from reportlab.lib.enums import TA_JUSTIFY
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+from reportlab.lib.units import mm
+
+############################
+# Globals
+############################
+blkfile = ''
+blkfilename = ''
+debug = None
+scriptpath = ''
+global_err = 0
+cheader    = False
+uvm_rm = 'wav_uvm_reg_model'
+uvm_rm_no_reg_test = 'wav_uvm_reg_model_no_reg_test'
+addrw = '32'
+
+global_prefix = None
+pdf_file      = None
+
+top_reg_system = None
+
+recursion_limit = 6
+recursion_steps = 0
+
+curmapname  = 'MAP_APB'
+curmapaddr  = '0x0'
+
+##########################
+def set_err():
+  global global_err
+  global_err = 1
+
+
+##########################
+def cleanup_files():
+  files = glob.glob('*addr_defines.vh')
+  for f in files:
+    os.remove(f)
+  files = glob.glob('*dv.txt')
+  for f in files:
+    os.remove(f)
+    
+##########################
+def graceful_exit():
+  cleanup_files()
+  sys.exit(1)
+
+##########################
+def run_gen_regs_dv(file, pre, bname, mapname, mapaddr, dv_file=0, use_gr_py=0):
+  """Runs gen_regs with -dv flags and parse that file. Creates
+     a RegBlock with the collections of Bitfields/Registers based on
+     the regfile. 
+     
+     If dv_file is set, then doesn't run the gen_regs portion
+     
+     """
+  
+  if not dv_file:  
+    #Select between the gen_regs variants
+    if use_gr_py:
+      gr = scriptpath+'gen_regs_py'
+    else:
+      gr = scriptpath+'gen_regs'
+    try:
+      os.path.isfile(gr)
+    except:
+      print("Error: gen_regs located at '%s' doesn't seem to exist! Exiting...." % gr)
+      graceful_exit()
+    
+    
+
+    if debug:
+      print("DBG: In run_gen_regs_dv. Running gen_regs on %s with script %s" % (file, gr))
+
+    dvfile = pre+'_'+bname+'_'+'dv.txt'
+    
+
+    #If we already have the file, ignore doing it again
+    #if not os.path.isfile(dvfile):
+    #Python 3
+    #subprocess.run([gr, '-i', file, '-p', pre, '-b', bname, '-dv', '-pdf'])
+    p = subprocess.Popen([gr, '-i', file, '-p', pre, '-b', bname, '-dv'], stdout=subprocess.PIPE)
+    for l in p.stdout:
+      print(l.rstrip('\n'))
+    p.wait()
+    
+
+    try:
+      os.path.isfile(dvfile)
+    except:
+      print("Error: DV File %s was not created properly! Exiting....")
+      graceful_exit()
+  
+  else:
+    dvfile = file
+  
+  #Don't give a name 
+  #rb = wrb.RegBlock(pre+'_'+bname)
+  rb = wrb.RegBlock(mapname=mapname, mapaddr=mapaddr)
+  rb.base_name = (pre+'_'+bname).upper()
+  
+  #Eventually we should make this it's own module to handle this
+  with open(dvfile) as f:
+    curreg = None
+    for line in f:
+      line = line.rstrip("\n\r")
+      if not line.startswith("#") and line.strip():
+        
+        #Grab the description is there is one and remove it from the line
+        desc = ''
+        m = re.search(r'<DESC>(.*?)<\\DESC>', line)
+        if m:
+          desc = m.group(1)
+          line = re.sub(r'<DESC>(.*?)<\\DESC>', '', line)
+          
+        #Look for NO_REG_TEST
+        notest = False
+        m = re.search(r'<NO_REG_TEST>', line)
+        if m: 
+          notest = True         
+          line = re.sub(r'<NO_REG_TEST>', '', line) 
+        
+        vars = line.split()
+        
+        #Register lines will consists of 3 entries
+        #Bitfields will consists of 5
+        if len(vars) == 3:
+          #If curreg is != None, then old reg exists and should add to regblock
+          if curreg:
+            rb.add_reg(curreg, bypass_bf_chk=dv_file)   #bypass bitfield check if DV file since who knows what it could be
+          rname, rtype, raddr     = vars[0], vars[1], vars[2]
+          curreg = wr.Register(rname, raddr, desc=desc, notest=notest)
+        elif len(vars) == 5:
+          bfname, bflen, bflsb, bfreset, bftype   = vars[0], vars[1], vars[2], vars[3], vars[4]
+          curbf = wbf.Bitfield(bfname, bflsb, bftype, bfreset, desc=desc)
+          curreg.add_bf(curbf, to_front=1)
+        else:
+          print("Error: Something is wrong with this line in %s. Please fix it!" % dvfile)
+          print("Line: {}".format(line))
+          set_err()
+    rb.add_reg(curreg, bypass_bf_chk=dv_file) #add the last one  
+  if debug:
+    print("DBG: New RegBlock")
+    rb.print_info()
+  
+  
+  #Create a addr_defines.vh for dv_files
+  if dv_file:
+    dvfile_base = base=os.path.basename(dvfile)
+    dvad = dvfile_base+'.addr_defines.vh'
+    print("Generating {0} (DV Address Defines)".format(dvad))
+    rb.print_ad_file('', '', use_this_filename=dvad)
+        
+  
+  return rb
+
+##########################
+def check_env_var_and_update(s):
+  m = re.match(r'\${(.*?)}', s)
+  if m:
+    evar = os.getenv(m.group(1))
+    if debug:
+      print("DBG: Envrionment variable %s expands to %s" % (m.group(1), evar))
+    if not evar:
+      print("Error: Environment variable %s is not defined! Please ensure this is defined before running" % m.group(1))
+      graceful_exit()
+    
+    s = re.sub(r'\${(.*?)}', '', s)
+    s = evar+'/'+s
+  
+  return s
+
+
+def fix_hex_addr(s):
+  s = re.sub(r'_', '', s)
+  return s
+
+
+##########################
+def parse_blk(bfile, is_top=1, base='0x0', recur=0, higher_sysname=""):
+  """This will open and parse the blk file passed to it. This function
+     can handle recursion if the current blk file references another. The
+     is_top flag should be set to 0 in the event of recursion, as obviously
+     something else called it"""
+  
+  global curmapname
+  global curmapaddr
+  
+  #print("recur level %s" % int(recur))
+  
+  if not is_top:
+    current_system = wrs.RegSystem(base_addr=base)
+    if recur == recursion_limit:
+      print("Error: Whoa mule! You have transcended into the black hole of recursion!")
+      print("       You have dove into subsystems a total of %d times! You more than likely" % recursion_limit)
+      print("       have really screwed up your blkfile! This is the blkfile in questions")
+      print("%s" % bfile)
+      graceful_exit()
+    
+  
+  if debug:
+    print("DBG: Parsing blkfile: %s and is_top=%d, higher_sysname=%s" % (bfile, is_top, higher_sysname))
+    if not is_top:
+      print("DBG: Base Addr %s" % base)
+  
+  try:
+    os.path.isfile(bfile)
+  except FileNotFoundError:
+    print("Error: blkfile '%s' doesn't seem to exist!" % bfile)
+    set_err()
+  else:
+    with open(bfile) as f:
+      linenum = 1
+      for line in f:
+        line = line.rstrip("\n\r")
+        if not line.startswith("#") and line.strip():
+          if debug:
+            print("DGB: Working on: %s" % line)
+            
+          #Remove any beginning white space. Check for SYS/BLK
+          
+          #####################################
+          # BLK
+          #####################################
+          if re.search(r'^\s*BLK:', line):
+            #Block level, create the dv file and open it for parsing. Save the 
+            #data to a bitfield/register/reg_block class
+            line    = re.sub(r'^\s*BLK:', '', line)
+            vars    = line.split()
+            if len(vars) != 5 and len(vars) != 6:
+              print("Error: Something is incorrect with line #%d" % linenum)
+              print("       Expecting 5/6 entries but see %d" % len(vars))
+              print(" Line: %s" % line)
+              set_err()
+            
+            regfile       = vars[0]
+            regblockprefix= vars[1]
+            regprefix     = vars[2]
+            regblockname  = vars[3]
+            regoffset     = fix_hex_addr(vars[4])
+            if len(vars) == 6:
+              if vars[5] == "-py":
+                use_gr_py = 1
+              else:
+                print("Error for last element of BLK line ({}):".format(vars[5]))
+                print(" Line: %s" % line)
+            else:
+              use_gr_py = 1 #temp test!!!
+            
+            #Check for Env variable in reg file name
+            regfile = check_env_var_and_update(regfile)
+
+            try:
+              os.path.isfile(regfile)
+            except FileNotFoundError:
+              print("Error: Register file %s doesn't seem to exists" % regfile)
+              set_err()
+            else:
+              #Get DV Txt File
+              rb = run_gen_regs_dv(regfile, regprefix, regblockname, mapname=curmapname, mapaddr=curmapaddr, use_gr_py=use_gr_py) 
+              
+              if cheader:
+                rb.print_ch_file()
+              
+              #Add the prefix to the name
+              if (regblockprefix != "N/A") and (regblockprefix != "n/a"):
+                rb.add_prefix(regblockprefix)
+              
+              
+              #Add to current system
+              if is_top:
+                top_reg_system.add_reg_block(regoffset, rb)
+              else:
+                #Compute the Offset based on the recursion
+                calcoffset = hex(int(regoffset, 16) + int(base, 16))
+                current_system.add_reg_block(calcoffset, rb)
+                
+          #####################################
+          # SYS
+          #####################################  
+          elif re.search(r'^\s*SYS:', line):
+            #System level, we will grab the blk file and pass it to parse_blk with is_top=0
+            line    = re.sub(r'^\s*SYS:', '', line)
+            vars    = line.split()
+            if len(vars) != 3:
+              print("Error: Something is incorrect with line #%d" % linenum)
+              print("       Expecting 3 entries but see %d" % len(vars))
+              print(" Line: %s" % line)
+              set_err()
+                          
+            bf, sysprefix, sysoffset = vars[0], vars[1], fix_hex_addr(vars[2])
+            
+            #update the system name string if there is a system prefix
+            new_higher_sysname = higher_sysname
+            
+            #If no system instance name, then empty the string
+            if (sysprefix == "N/A") or (sysprefix == "n/a"):
+                sysprefix = ""
+            else:
+              #If there is a system instance name, check to see if you
+              #need to
+              if new_higher_sysname != "":
+                new_higher_sysname = new_higher_sysname +'_'+ sysprefix
+              else:
+                new_higher_sysname = sysprefix
+            
+            #Check for Env variable in file name
+            bf = check_env_var_and_update(bf)
+            
+            #Adjust the new base+sysoffset
+            sysoffset_int = int(sysoffset, 16)
+            base_int      = int(base, 16)
+            newbase_hex   = hex(sysoffset_int + base_int)
+            
+            #Call parse_blk and return system
+            #This system now gets            
+            
+            
+            if is_top:
+              current_system      = parse_blk(bf, is_top=0, base=newbase_hex, recur=recur+1, higher_sysname=new_higher_sysname)
+              current_system.name = sysprefix
+              #current_system.print_topology(sys.stdout, "//TOP-pre")
+              top_reg_system.add_reg_system(current_system.get_base_addr_str(), current_system, is_top=is_top, dbg=debug)
+              #top_reg_system.print_topology(sys.stdout, "//TOP")
+            else:
+              current_subsystem      = parse_blk(bf, is_top=0, base=newbase_hex, recur=recur+1, higher_sysname=new_higher_sysname)
+              #current_subsystem.name = sysprefix
+              current_subsystem.name = new_higher_sysname
+              current_system.add_reg_system(current_subsystem.get_base_addr_str(), current_subsystem, is_top=is_top, dbg=debug)
+            
+          #####################################
+          # DV (This is a file that doesn't use gen_regs
+          ##################################### 
+          elif re.search(r'^\s*DV:', line):
+            line    = re.sub(r'^\s*DV:', '', line)
+            vars    = line.split()
+            if len(vars) != 3:
+              print("Error: Something is incorrect with line #%d" % linenum)
+              print("       Expecting 3 entries but see %d" % len(vars))
+              print(" Line: %s" % line)
+              set_err()
+            
+            
+            dvfile, dvprefix, dvoffset = vars[0], vars[1], fix_hex_addr(vars[2])
+            dvfile = check_env_var_and_update(dvfile)
+            
+            try:
+              os.path.isfile(dvfile)
+            except FileNotFoundError:
+              print("Error: Register file %s doesn't seem to exists" % dvfile)
+              set_err()
+            else:
+              rb = run_gen_regs_dv(dvfile, dvprefix, '', mapname=curmapname, mapaddr=curmapaddr, dv_file=1) 
+              rb.base_name = dvprefix.upper()+'_'
+              if cheader:
+                rb.print_ch_file()
+              
+              #Add the prefix to the name
+              rb.add_prefix(dvprefix)
+              
+              if is_top:
+                top_reg_system.add_reg_block(dvoffset, rb)
+              else:
+                #Compute the Offset based on the recursion
+                calcoffset = hex(int(dvoffset, 16) + int(base, 16))
+                current_system.add_reg_block(calcoffset, rb)
+          
+          #####################################
+          # SWI (DLA files)
+          ##################################### 
+          elif re.search(r'^\s*SWI:', line):
+            line    = re.sub(r'^\s*SWI:', '', line)
+            vars    = line.split()
+            if len(vars) != 3:
+              print("Error: Something is incorrect with line #%d" % linenum)
+              print("       Expecting 3 entries but see %d" % len(vars))
+              print(" Line: %s" % line)
+              set_err()
+            
+            dvfile, dvprefix, dvoffset = vars[0], vars[1], fix_hex_addr(vars[2])
+            dvfile = check_env_var_and_update(dvfile)
+            
+            try:
+              os.path.isfile(dvfile)
+            except FileNotFoundError:
+              print("Error: SWI file %s doesn't seem to exists" % dvfile)
+              set_err()
+            else:
+              #rb = run_gen_regs_dv(dvfile, dvprefix, '', mapname=curmapname, mapaddr=curmapaddr, dv_file=1) 
+              rb = SwiBlock(filename=dvfile, base_name='', mapname=curmapname, mapaddr=curmapaddr)
+              rb.base_name = dvprefix.upper()+'_'
+              #We need to print the vh file since not through gen_regs
+              rb.print_ad_file(dvprefix, 'swi')
+              if cheader:
+                rb.print_ch_file()
+              
+              #Add the prefix to the name
+              
+              rb.add_prefix(dvprefix)
+              
+              if is_top:
+                top_reg_system.add_reg_block(dvoffset, rb)
+              else:
+                #Compute the Offset based on the recursion
+                calcoffset = hex(int(dvoffset, 16) + int(base, 16))
+                current_system.add_reg_block(calcoffset, rb)
+            
+          #####################################
+          # MAP
+          #####################################  
+          elif re.search(r'^\s*MAP:', line):
+            if is_top:
+              line = re.sub(r'^\s*MAP:', '', line)
+              vars    = line.split()
+              if len(vars) != 2:
+                print("Error: Something is incorrect with line #%d" % linenum)
+                print("       Expecting 2 entries but see %d" % len(vars))
+                print(" Line: %s" % line)
+                set_err()
+
+              curmapname , curmapaddr = vars[0], fix_hex_addr(vars[1])
+              if debug:
+                print("new map: {0} @ {1}".format(curmapname, curmapaddr))
+            else:
+              print("WARN: The lower level block file {0} has a MAP defined:".format(bfile))
+              print("      {0}".format(line))
+              print("      Only Top Level Block file map will be used. Replacing with:")
+              print("      MAP: {0:26} Base Addr: {1}".format(curmapname, curmapaddr))
+            
+          ### Error
+          else:
+            print("Error on Line #%d. Doesn't match BLK: or SYS:" % linenum)
+            set_err()
+        
+        linenum += 1
+        
+  
+  if global_err:
+    print("Errors have been seen so exiting....")
+    graceful_exit()
+  
+  if not is_top:
+    if debug:
+      print("returning system {}".format(current_system.name))
+    return current_system
+  else:
+    recursion_steps = 0
+
+##########################
+def print_reg_list(sys):
+  sys.print_info()
+  
+##########################
+def create_addr_defines_file(vh_file):
+  vh_file = vh_file+'.svh'
+
+  files = glob.glob('*addr_defines.vh')
+  #Why doesn't this exception work?
+  #try:
+  with open(vh_file, 'w') as vh:
+    for f in files:
+      #try:
+        with open(f, 'r') as fh:
+          lines = fh.readlines()
+          for l in lines:
+            vh.write(l)
+        #except:
+        #  print("Error: Cannot open file {}".format(f))
+  #except:
+  #  print("Error: Cannot open file {}".format(vh_file))
+
+
+
+##########################
+def get_args():
+  parser = ap.ArgumentParser()
+  parser.add_argument("-b",   "-blk",         help="Top-Level Block File for registers", type=str)
+  parser.add_argument("-dbg", "-debug",       help="debugs things when my code didn't work so good", action='store_true')
+  parser.add_argument("-sp",  "-script_path", help="Path of scripts like gen_regs (incase this is not in your $PATH or experimenting)", type=str)
+  parser.add_argument("-o",   "-out",         help="Output uvm_reg_model", type=str)
+  parser.add_argument("-p",   "-prefix",      help="Global Prefix for ALL register (usually a chip name)", type=str)
+  parser.add_argument("-ch",  "-cheader",     help="Prints out the C #defines to a .h file", action='store_true')
+  parser.add_argument("-pdf",                 help="Creates a PDF with register information", type=str)
+  parser.add_argument("-aw",  "-addr_width",  help="Width of addr to use in reg_model", type=str)
+  
+  
+  args = parser.parse_args()
+  
+  if args.dbg:
+    global debug
+    debug = True
+    print("Debugging enabled, I must have broke something....")
+  
+  
+  if args.b:
+    global blkfile
+    blkfile = args.b
+  else:
+    print("Error: A block file was not specified!")
+    parser.print_help(sys.stderr)
+    graceful_exit()
+
+  #To be used for later
+  global blkfilename
+  blkfilename = re.sub('\.blk', '', blkfile)
+  blkfilename = re.sub('.*/', '', blkfilename)
+
+  if args.sp:
+    global scriptpath
+    scriptpath = args.sp+'/'
+    print("Using script path: %s" % scriptpath)
+    
+  if args.o:
+    global uvm_rm
+    uvm_rm = args.o
+    global uvm_rm_no_reg_test
+    uvm_rm_no_reg_test = uvm_rm+'_no_reg_test'
+    print("Creating output file %s.sv" % uvm_rm)
+    print("Creating output file %s.svh" % uvm_rm_no_reg_test)
+  
+  if args.p:
+    global global_prefix
+    global_prefix = args.p
+  
+  if args.pdf:
+    global pdf_file
+    pdf_file = args.pdf
+  
+  if args.ch:
+    global cheader
+    cheader = blkfilename+'_c_defines.h'
+    print('Creating C Header file {0}'.format(cheader))
+  
+  if args.aw:
+    global addrw
+    addrw = args.aw
+    print('Using address width of {0}bits'.format(addrw))
+  
+############################
+# Run
+############################
+get_args()
+top_reg_system = wrs.RegSystem()
+parse_blk(blkfile)
+
+if global_prefix:
+  top_reg_system.add_global_prefix(global_prefix)
+
+if debug:
+  print_reg_list(top_reg_system)
+
+top_reg_system.set_addrw(addrw)
+
+top_reg_system.print_uvm_reg_model(uvm_rm)
+top_reg_system.print_uvm_reg_model_no_reg_test(uvm_rm_no_reg_test)
+create_addr_defines_file(uvm_rm)
+cleanup_files()
+
+if pdf_file:
+  pdf = wp.WavPDF(filename=pdf_file, 
+                  header="Reg Documentation for {0}".format(blkfilename.upper()),
+                  title="Reg Documentation for {0}".format(blkfilename.upper()))
+  top_reg_system.create_pdf(pdf)
+  pdf.gen_pdf()
+
+
+if cheader:
+  ch = open(cheader, 'w')
+  head = wp.print_verilog_c_script_header(cheader)
+  ch.write(head)
+  top_reg_system.print_ch_file(ch)
+  pass
