@@ -1,0 +1,15 @@
+# <REG_NAME> <type RW|RO> <addr> <description>
+# <bit field> <size> <lsb location> <reset_val> <type(for RW/RO embed)> <description>
+RFIFO_EXAMPLE_REG1 RW 'h0 <DESC><\DESC> 
+BF1_MUX 1 5 1'h0 RW <DESC>Mux register select<\DESC>
+BF1 5 0 5'h0 RW <DESC>My read-write bitfield<\DESC>
+
+RFIFO_EXAMPLE_REG_WITH_RFIFO RO 'h4 <DESC><\DESC> 
+READ_DATA 8 0 8'h0 RFIFO <DESC>Reads from the FIFO<\DESC>
+
+RFIFO_EXAMPLE_DEBUG_BUS_CTRL RW 'h8 <DESC>Debug observation bus selection for signals that have a mux override<\DESC> 
+DEBUG_BUS_CTRL_SEL 1 0 1'h0 RW <DESC>Select signal for DEBUG_BUS_CTRL<\DESC>
+
+RFIFO_EXAMPLE_DEBUG_BUS_STATUS RO 'hc <DESC>Debug observation bus for signals that have a mux override<\DESC> 
+DEBUG_BUS_CTRL_STATUS 32 0 32'h0 RO <DESC>Status output for DEBUG_BUS_STATUS<\DESC>
+

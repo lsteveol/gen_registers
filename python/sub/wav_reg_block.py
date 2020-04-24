@@ -891,7 +891,6 @@ class RegBlock(object):
   
   assign PSLVERR = pslverr_pre;
 
-endmodule
 """
     else:
       ################

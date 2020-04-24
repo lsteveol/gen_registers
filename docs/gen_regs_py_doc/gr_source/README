@@ -1,0 +1,19 @@
+gen_regs_py -p my -b regs -i my_regs.txt
+
+# RW Reg Example
+gen_regs_py -p rw_reg -b example -i rw_reg_example.txt 
+
+# RW with Mux
+gen_regs_py -p rw_reg_mux -b example -i rw_reg_mux_example.txt 
+
+# W1C
+gen_regs_py -p w1c -b example -i w1c_example.txt 
+
+# WFIFO
+gen_regs_py -p wfifo -b example -i wfifo_example.txt
+
+# RFIFO
+gen_regs_py -p rfifo -b example -i rfifo_example.txt
+
+# DFT
+gen_regs_py -p dft -b example -i dft_example.txt

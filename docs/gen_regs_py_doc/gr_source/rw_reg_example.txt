@@ -1,0 +1,8 @@
+REG1                RW                      
+  bf1               5'b0                    My read-write bitfield
+ 
+
+
+
+
+

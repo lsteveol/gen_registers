@@ -1,0 +1,14 @@
+REG1                RW                      This is the first register
+  bf1               5'b0                    A description
+  bf2               4'h3                    Look how I use 'h         
+ 
+AREADONLYREG        RO
+  some_status_in    1'b0                    A signal I want to observe  
+  
+RWREG_WITH_RO       RW
+  somerwbf          1'b0                    This is a RW bitfield
+  somerobf          3'd0      RO            But this one is read-only
+
+
+
+

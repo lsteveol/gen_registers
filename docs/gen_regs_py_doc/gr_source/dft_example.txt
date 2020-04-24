@@ -1,0 +1,18 @@
+REG1                  RW     
+  bf1                 4'h3        {DFT:0}         Global setting of 0 during DFT modes
+  bf2                 5'b0        {HIZ:1}         Put DFT on the non-mux. Only active in Hiz mode
+  bf2_mux             1'b0
+  bf3                 1'b1        {IDDQ:0|DFT:1}  Set to 0 in IDDQ, but 1 in all other modes
+  set_core_scan       1'b0        {CORESCAN:1}    Set to 1 in CORESCAN mode
+
+REG_WITH_BSCAN_FLOP   RW
+  bscan_flop_drive    1'b0        {CORESCAN:1|BFLOP}          First in the chain since first in the file
+  bscan_flop_capture  3'b0  RO    {BFLOP}                     2nd, 3rd, 4th in chain
+  
+LAST_BSCAN_FLOP       RW
+  last_one_in_chain   1'b0        {BFLOP}                     Last one in the chain
+ 
+
+
+
+

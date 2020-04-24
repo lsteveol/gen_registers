@@ -1,0 +1,7 @@
+# Keep .pyc files from being included
+python/sub/*.pyc
+
+# Don't include the sphinx build dir
+docs/gen_regs_py_doc/build/
+
+docs/gen_uvm_reg_model_doc/build/

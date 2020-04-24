@@ -1,0 +1,13 @@
+REG1                RW                      
+  bf1               5'b0                    My read-write bitfield
+  bf1_mux           1'b0                    Mux register select
+ 
+
+REG_WITH_W1C        RW
+  myinterrupt       1'b0      W1C           Using this like an interrupt
+
+
+
+
+
+
