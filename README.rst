@@ -1,4 +1,5 @@
-# gen_registers
+gen_registers
+=============
 A Python based tool for generating hardware registers and their associated files
 
 
