@@ -3,8 +3,8 @@
 import sys
 import os
 #sys.path.insert(0, '/cad/bin/wav_py')
-sys.path.insert(0, 'sub')
-sys.path.append(os.path.join(sys.path[0],'sub'))
+sys.path.insert(1, os.path.join(sys.path[0],'sub'))
+#sys.path.append(os.path.join(sys.path[0],'sub'))
 #sys.path.insert(0, '/prj/wavious/r0_tsmc28hpc/iceng/work/sbridges/scripts/py_regs/wav_py')
 
 
@@ -21,13 +21,13 @@ import argparse as ap
 import subprocess
 import glob
 
-from reportlab.lib.enums import TA_JUSTIFY
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.lib import colors
-from reportlab.lib.units import mm
+#from reportlab.lib.enums import TA_JUSTIFY
+#from reportlab.lib.pagesizes import letter
+#from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle
+#from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+#from reportlab.lib.units import inch
+#from reportlab.lib import colors
+#from reportlab.lib.units import mm
 
 ############################
 # Globals
@@ -585,11 +585,13 @@ create_addr_defines_file(uvm_rm)
 cleanup_files()
 
 if pdf_file:
-  pdf = wp.WavPDF(filename=pdf_file, 
-                  header="Reg Documentation for {0}".format(blkfilename.upper()),
-                  title="Reg Documentation for {0}".format(blkfilename.upper()))
-  top_reg_system.create_pdf(pdf)
-  pdf.gen_pdf()
+  print("PDF Generation support has been removed")
+#  pdf = wp.WavPDF(filename=pdf_file, 
+#                  header="Reg Documentation for {0}".format(blkfilename.upper()),
+#                  title="Reg Documentation for {0}".format(blkfilename.upper()))
+#  top_reg_system.create_pdf(pdf)
+#  pdf.gen_pdf()
+
 
 
 if cheader:

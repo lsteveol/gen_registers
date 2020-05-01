@@ -16,12 +16,12 @@ import sys
 
 
 #For PDF Gen
-from reportlab.lib.enums import TA_JUSTIFY
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle, PageBreak
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.lib import colors
+#from reportlab.lib.enums import TA_JUSTIFY
+#from reportlab.lib.pagesizes import letter
+#from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle, PageBreak
+#from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+#from reportlab.lib.units import inch
+#from reportlab.lib import colors
 
 class RegBlock(object):
 
@@ -47,10 +47,10 @@ class RegBlock(object):
     self.addr_width = 8
     self.mux_list = []
     
-    self.RW_color = colors.HexColor("#7091ff")
-    self.RO_color = colors.HexColor("#3dffae")
-    self.W1C_color= colors.HexColor("#0abdbd")
-    self.WO_color = colors.HexColor("#bd590a")
+#    self.RW_color = colors.HexColor("#7091ff")
+#    self.RO_color = colors.HexColor("#3dffae")
+#    self.W1C_color= colors.HexColor("#0abdbd")
+#    self.WO_color = colors.HexColor("#bd590a")
     
     
     #Address Width
@@ -1095,94 +1095,94 @@ endmodule
     
     print(mah_str)
   
-  ################################################
-  def create_pdf(self, pdf):
-    """Creates the PDF file for the reg block"""
-    
-    styles=getSampleStyleSheet()
-    
-    line = wp.WavPDFLine()
-    pdf.Story.append(line)
-    pdf.Story.append(Spacer(1, 2))
-    bla = "<b>Register Block:</b> {0}{1}".format(self.name, self.base_name)
-    #pdf.Story.append(Paragraph(wp.wrap_font(bla, '14'), styles["Normal"]))
-    pdf.Story.append(Paragraph(wp.wrap_font(bla, '14'), pdf.head2))
-    pdf.Story.append(Spacer(1, 2))
-    bla = "<b>Base Address  :</b> {0}".format(self.reg_list[0].addr_hex)#self.base_addr)
-    pdf.Story.append(Paragraph(wp.wrap_font(bla, '14'), styles["Normal"]))
-    pdf.Story.append(Spacer(1, 5))
-    pdf.Story.append(line)
-    pdf.Story.append(Spacer(1, 10))
-    
-    
-    for r in self.reg_list:
-      table_data = []
-      table_head = [Paragraph(wp.wrap_font(wp.wrap_bold('Bitfield Name'), '8'), styles['Normal']), 
-                    Paragraph(wp.wrap_font(wp.wrap_bold('Index'), '8'), styles['Normal']), 
-                    Paragraph(wp.wrap_font(wp.wrap_bold('Reset Value'), '8'), styles['Normal']), 
-                    Paragraph(wp.wrap_font(wp.wrap_bold('Type'), '8'), styles['Normal']), 
-                    Paragraph(wp.wrap_font(wp.wrap_bold("Description"), '8'), styles['Normal'])]
-      table_data.append(table_head)
-      
-      if r.desc == '':
-        rdesc = "No description given"
-      else:
-        rdesc = r.desc
-      #pdf.Story.append(Paragraph(wp.wrap_font("<b>"+r.name+"</b>", '12'), styles["Normal"]))
-      pdf.Story.append(Paragraph(wp.wrap_font("<b>"+r.name+"</b>", '12'), pdf.head3))
-      pdf.Story.append(Spacer(1, 2))
-      pdf.Story.append(Paragraph("Address: 0x{0}".format(r.addr_hex), styles["Normal"]))
-      pdf.Story.append(Paragraph("Description: {0}".format(rdesc), styles["Normal"]))
-      
-      #Base TableStyle, we will use add command to add for bitfield types
-      ts = TableStyle([('GRID',           (0,0), (-1,-1), 0.5,  colors.black),         #ALL Cells
-                       ('BACKGROUND',     (0,0), (-1,0),        colors.lightgrey),     #Top Row
-                       ('TOPPADDING',     (0,0), (-1,-1),       1),
-                       ('BOTTOMPADDING',  (0,0), (-1,-1),       1),
-                       ('RIGHTPADDING',   (0,0), (-1,-1),       3),
-                       ('LEFTPADDING',    (0,0), (-1,-1),       3),
-                       ('VALIGN',         (0,0), (-2,-1),       'MIDDLE')])            # Left most coloumn
-      #Start at 1 since header is 0
-      index = 1
-      
-      for bf in r.bf_list:
-        #bf_data = [bf.name, bf.get_index_str(), "{0}'h{1}".format(bf.length, bf.reset_hex), bf.type, bf.desc]
-        #Paragraph is used to help with word wrap
-        if bf.type == 'WFIFO':
-          bf_type_fifo_fix = 'WFIFO(WO)'
-        elif bf.type == 'RFIFO':
-          bf_type_fifo_fix = 'RFIFO(RO)'
-        else:
-          bf_type_fifo_fix = bf.type
-        
-        bf_data = [Paragraph(wp.wrap_font(bf.name, '7'), styles['Normal']), 
-                   Paragraph(wp.wrap_font(bf.get_index_str(), '8'), styles['Normal']), 
-                   Paragraph(wp.wrap_font("{0}'h{1}".format(bf.length, bf.reset_hex), '8'), styles['Normal']), 
-                   Paragraph(wp.wrap_font(bf_type_fifo_fix, '8'), styles['Normal']), 
-                   Paragraph(wp.wrap_font(bf.desc, '7'), styles['Normal'])]
-        table_data.append(bf_data)
-        
-        #Colors because I like em
-        if bf.type == 'RW':
-          ts.add('BACKGROUND', (3,index), (3,index),       self.RW_color)
-        elif bf.type == 'RO' or bf.type == 'RFIFO':
-          ts.add('BACKGROUND', (3,index), (3,index),       self.RO_color)
-        elif bf.type == 'W1C':
-          ts.add('BACKGROUND', (3,index), (3,index),       self.W1C_color)
-        elif bf.type == 'WO' or bf.type == 'WFIFO':
-          ts.add('BACKGROUND', (3,index), (3,index),       self.WO_color)
-        
-        index+=1
-      
-      
-        
-      t=Table(table_data, colWidths=[145,45,60,60,230])
-      t.setStyle(ts)
-                                   
-      pdf.Story.append(t)
-      pdf.Story.append(Spacer(1, 14))
-    
-    #Add PageBreak at the end
-    pdf.Story.append(PageBreak())
+#  ################################################
+#  def create_pdf(self, pdf):
+#    """Creates the PDF file for the reg block"""
+#    
+#    styles=getSampleStyleSheet()
+#    
+#    line = wp.WavPDFLine()
+#    pdf.Story.append(line)
+#    pdf.Story.append(Spacer(1, 2))
+#    bla = "<b>Register Block:</b> {0}{1}".format(self.name, self.base_name)
+#    #pdf.Story.append(Paragraph(wp.wrap_font(bla, '14'), styles["Normal"]))
+#    pdf.Story.append(Paragraph(wp.wrap_font(bla, '14'), pdf.head2))
+#    pdf.Story.append(Spacer(1, 2))
+#    bla = "<b>Base Address  :</b> {0}".format(self.reg_list[0].addr_hex)#self.base_addr)
+#    pdf.Story.append(Paragraph(wp.wrap_font(bla, '14'), styles["Normal"]))
+#    pdf.Story.append(Spacer(1, 5))
+#    pdf.Story.append(line)
+#    pdf.Story.append(Spacer(1, 10))
+#    
+#    
+#    for r in self.reg_list:
+#      table_data = []
+#      table_head = [Paragraph(wp.wrap_font(wp.wrap_bold('Bitfield Name'), '8'), styles['Normal']), 
+#                    Paragraph(wp.wrap_font(wp.wrap_bold('Index'), '8'), styles['Normal']), 
+#                    Paragraph(wp.wrap_font(wp.wrap_bold('Reset Value'), '8'), styles['Normal']), 
+#                    Paragraph(wp.wrap_font(wp.wrap_bold('Type'), '8'), styles['Normal']), 
+#                    Paragraph(wp.wrap_font(wp.wrap_bold("Description"), '8'), styles['Normal'])]
+#      table_data.append(table_head)
+#      
+#      if r.desc == '':
+#        rdesc = "No description given"
+#      else:
+#        rdesc = r.desc
+#      #pdf.Story.append(Paragraph(wp.wrap_font("<b>"+r.name+"</b>", '12'), styles["Normal"]))
+#      pdf.Story.append(Paragraph(wp.wrap_font("<b>"+r.name+"</b>", '12'), pdf.head3))
+#      pdf.Story.append(Spacer(1, 2))
+#      pdf.Story.append(Paragraph("Address: 0x{0}".format(r.addr_hex), styles["Normal"]))
+#      pdf.Story.append(Paragraph("Description: {0}".format(rdesc), styles["Normal"]))
+#      
+#      #Base TableStyle, we will use add command to add for bitfield types
+#      ts = TableStyle([('GRID',           (0,0), (-1,-1), 0.5,  colors.black),         #ALL Cells
+#                       ('BACKGROUND',     (0,0), (-1,0),        colors.lightgrey),     #Top Row
+#                       ('TOPPADDING',     (0,0), (-1,-1),       1),
+#                       ('BOTTOMPADDING',  (0,0), (-1,-1),       1),
+#                       ('RIGHTPADDING',   (0,0), (-1,-1),       3),
+#                       ('LEFTPADDING',    (0,0), (-1,-1),       3),
+#                       ('VALIGN',         (0,0), (-2,-1),       'MIDDLE')])            # Left most coloumn
+#      #Start at 1 since header is 0
+#      index = 1
+#      
+#      for bf in r.bf_list:
+#        #bf_data = [bf.name, bf.get_index_str(), "{0}'h{1}".format(bf.length, bf.reset_hex), bf.type, bf.desc]
+#        #Paragraph is used to help with word wrap
+#        if bf.type == 'WFIFO':
+#          bf_type_fifo_fix = 'WFIFO(WO)'
+#        elif bf.type == 'RFIFO':
+#          bf_type_fifo_fix = 'RFIFO(RO)'
+#        else:
+#          bf_type_fifo_fix = bf.type
+#        
+#        bf_data = [Paragraph(wp.wrap_font(bf.name, '7'), styles['Normal']), 
+#                   Paragraph(wp.wrap_font(bf.get_index_str(), '8'), styles['Normal']), 
+#                   Paragraph(wp.wrap_font("{0}'h{1}".format(bf.length, bf.reset_hex), '8'), styles['Normal']), 
+#                   Paragraph(wp.wrap_font(bf_type_fifo_fix, '8'), styles['Normal']), 
+#                   Paragraph(wp.wrap_font(bf.desc, '7'), styles['Normal'])]
+#        table_data.append(bf_data)
+#        
+#        #Colors because I like em
+#        if bf.type == 'RW':
+#          ts.add('BACKGROUND', (3,index), (3,index),       self.RW_color)
+#        elif bf.type == 'RO' or bf.type == 'RFIFO':
+#          ts.add('BACKGROUND', (3,index), (3,index),       self.RO_color)
+#        elif bf.type == 'W1C':
+#          ts.add('BACKGROUND', (3,index), (3,index),       self.W1C_color)
+#        elif bf.type == 'WO' or bf.type == 'WFIFO':
+#          ts.add('BACKGROUND', (3,index), (3,index),       self.WO_color)
+#        
+#        index+=1
+#      
+#      
+#        
+#      t=Table(table_data, colWidths=[145,45,60,60,230])
+#      t.setStyle(ts)
+#                                   
+#      pdf.Story.append(t)
+#      pdf.Story.append(Spacer(1, 14))
+#    
+#    #Add PageBreak at the end
+#    pdf.Story.append(PageBreak())
   
 

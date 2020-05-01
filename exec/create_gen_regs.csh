@@ -6,7 +6,14 @@ if(-d dist) then
 endif
 
 
-pyinstaller --onefile ../python/gen_regs_py
+#pyinstaller --onefile ../python/gen_regs_py
+
+../venv/bin/pyinstaller --onefile \
+  --paths="../python/" \
+  --paths="../python/sub/" \
+  --add-data="../python/sub/*.py:." \
+  --hidden-import="pyparsing" \
+  ../python/gen_regs_py
 
 if(-e dist/gen_regs_py) then
   cp dist/gen_regs_py ../

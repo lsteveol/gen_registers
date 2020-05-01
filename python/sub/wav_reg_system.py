@@ -23,12 +23,12 @@ import re
 
 
 #For PDF Gen
-from reportlab.lib.enums import TA_JUSTIFY
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle, PageBreak
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.lib import colors
+#from reportlab.lib.enums import TA_JUSTIFY
+#from reportlab.lib.pagesizes import letter
+#from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, Table, TableStyle, PageBreak
+#from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+#from reportlab.lib.units import inch
+#from reportlab.lib import colors
 
 class RegSystem():
   
@@ -319,7 +319,8 @@ class RegSystem():
        operation"""  
     
     if is_top:
-      f.write('class {0} extends wav_reg_model;\n'.format(reg_model_name))
+      #f.write('class {0} extends wav_reg_model;\n'.format(reg_model_name))
+      f.write('class {0} extends uvm_reg_block;\n'.format(reg_model_name))
       f.write('  `uvm_object_utils({0})\n\n'.format(reg_model_name))
     
     for key in self.rb_list:
@@ -359,20 +360,20 @@ class RegSystem():
         self.rb_list[key].print_uvm_reg_model_create(f)
       
   
-  ################################################
-  def create_pdf(self, pdf, is_top=1):
-    """Creates the PDF file for the reg system"""
-    
-    styles=getSampleStyleSheet()
-    
-    pdf.Story.append(Paragraph("System: {0}".format(self.name), pdf.head1))
-    
-    for key in self.rb_list:
-      if isinstance(self.rb_list[key], wrb.RegBlock):
-        self.rb_list[key].create_pdf(pdf)
-      else:
-        #Create a new page break to indicate start of System
-        if not is_top:
-          pdf.Story.append(PageBreak())
-          
-        self.rb_list[key].create_pdf(pdf, is_top=0)
+#  ################################################
+#  def create_pdf(self, pdf, is_top=1):
+#    """Creates the PDF file for the reg system"""
+#    
+#    styles=getSampleStyleSheet()
+#    
+#    pdf.Story.append(Paragraph("System: {0}".format(self.name), pdf.head1))
+#    
+#    for key in self.rb_list:
+#      if isinstance(self.rb_list[key], wrb.RegBlock):
+#        self.rb_list[key].create_pdf(pdf)
+#      else:
+#        #Create a new page break to indicate start of System
+#        if not is_top:
+#          pdf.Story.append(PageBreak())
+#          
+#        self.rb_list[key].create_pdf(pdf, is_top=0)
