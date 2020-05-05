@@ -580,7 +580,7 @@ if debug:
 top_reg_system.set_addrw(addrw)
 
 top_reg_system.print_uvm_reg_model(uvm_rm)
-top_reg_system.print_uvm_reg_model_no_reg_test(uvm_rm_no_reg_test)
+#top_reg_system.print_uvm_reg_model_no_reg_test(uvm_rm_no_reg_test)
 create_addr_defines_file(uvm_rm)
 cleanup_files()
 

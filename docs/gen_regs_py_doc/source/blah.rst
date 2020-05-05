@@ -6,7 +6,7 @@ design and creation process, resulting in quicker RTL development and fewer bugs
 Using simple text file input, a designer can quickly develop registers. No clunky spreadsheets, no crazy syntaxes, just simple
 text files.
 
-The tool will create a register block that has a APB slave interface to be used for transactions
+The tool will create a register block that has a APB/AHB slave interface to be used for transactions
 
 
 Running the Script (Options)
@@ -23,6 +23,16 @@ Running the Script (Options)
 
 -b, -block (REQUIRED)
   BLOCK NAME to be used. This has no effect on the bitfield names in the RTL
+  
+-ahb (Optional)
+  Creates the register block with an AHB-Lite supported interface.
+  
+  .. note ::
+    
+    Register operation is not changed by interface type.
+
+-sphinx (Optional)
+  Prints out a Sphinx formatted table for documentation purposes.
 
 -dv (Optional)
   Creates 'DV' related files that are used for DV and/or fed into the ``gen_uvm_reg_model`` script.  
@@ -31,6 +41,7 @@ Running the Script (Options)
   Prints some info to the console during building. Can be used to track down any incorrect input file setup
 
 .. note::
+
   The **PREFIX** and **BLOCK** names are used to *uniquify* the design. For the RTL the only place these are seen
   is in the output RTL and module name. During DV, these are used as qualifiers to specific blocks.
 

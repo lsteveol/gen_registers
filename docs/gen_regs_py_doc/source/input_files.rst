@@ -34,13 +34,27 @@ A register declaration will follow this syntax
   | {NO_REG_TEST} | Optional | When ``{NO_REG_TEST}`` is defined, DV output files will result in this register   |
   |               |          | being excluded from register testing                                              |
   +---------------+----------+-----------------------------------------------------------------------------------+
-  | DESCRIPTION   | Optional | Description of register.                                                          |
+  | DESCRIPTION   | Optional | Description of register. Must be on one line                                      |
   +---------------+----------+-----------------------------------------------------------------------------------+
 
 .. note::
   You may notice that there is no **address** declaration. This is because ``gen_regs_py`` will automatically assign
   addresses based on the location of the register in the file. The first register is assigned address 0x00, the second, 
   address 0x04, and so on. 
+  
+  If a user wants to place certain registers at certain addresses, the user would want to manually place the registers
+  in the correct order. Reserved registers can be created by declaring a register and setting one or more bits as "reserved".
+  
+  ::
+    
+    REG1        RW
+      bf1       1'b0
+    
+    RSVRD0      RW        //No registers are generated but the space is reserved
+      reserved  1'b0
+    
+    REG_AT_X8   RW
+      bf2
 
 
 Bitfield Declaration
@@ -66,8 +80,14 @@ A bitfield declaration will follow this syntax
   +---------------+----------+-----------------------------------------------------------------------------------+
   | {DFT}         | Optional | Creates DFT related overrides                                                     |
   +---------------+----------+-----------------------------------------------------------------------------------+
-  | DESCRIPTION   | Optional | Description of register. Not required.                                            |
+  | DESCRIPTION   | Optional | Description of bitfield. Not required. Must be on one line                        |
   +---------------+----------+-----------------------------------------------------------------------------------+
+  
+.. note ::
+
+  Bitfields defined with BFNAME ``reserved`` are treated as reserved bitfield allocations. ``gen_regs_py`` will not 
+  create a bitfield for these location, and these locations always read back all zeros. The ``reserved`` bitfield 
+  keyword can be used multiple times.
 
 Comments
 ++++++++

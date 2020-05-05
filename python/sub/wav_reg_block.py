@@ -212,6 +212,9 @@ class RegBlock(object):
       addr_min_map = re.sub(r'0x', '', hex(addr_min_map))
       fh.write('    this.{0}.add_hdl_path_slice("{1}", {2}\'h{3}, 32);\n'.format(self.name+r.name, self.name+r.name, self.addrw, addr_min_map))
       fh.write('    {0}.add_reg({1}, {2}\'h{3}, "{4}");\n\n'.format(self.mapname, self.name+r.name, self.addrw, addr_min_map, r.get_reg_type()))
+      
+      if r.notest:
+        fh.write('    uvm_resource_db#(bit)::set(.scope("REG::*{0}"), .name("NO_REG_TESTS"), .val(1), .accessor(this));\n'.format((self.name+r.name)))
     
   ################################################
   def print_info(self, indent=''):

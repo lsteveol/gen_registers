@@ -1,5 +1,6 @@
 # Keep .pyc files from being included
 python/sub/*.pyc
+python/sub/__pycache__/
 
 # Don't include the sphinx build dir
 docs/gen_regs_py_doc/build/
@@ -10,3 +11,7 @@ docs/gen_uvm_reg_model_doc/build/
 exec/build/
 exec/dist/
 exec/*.spec
+
+
+#
+venv/

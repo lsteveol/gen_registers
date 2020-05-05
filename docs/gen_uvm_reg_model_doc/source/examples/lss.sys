@@ -1,0 +1,4 @@
+#BLK:File                             Inst Name               Prefix          Block               Offset
+BLK:${TEST_REGS}/spi_regs.txt         SPI0                    spi             regs                0x0000
+BLK:${TEST_REGS}/spi_regs.txt         SPI1                    spi             regs                0x0100
+BLK:${TEST_REGS}/i2c_regs.txt         I2C0                    i2c             regs                0x0200

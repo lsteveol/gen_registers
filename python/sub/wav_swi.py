@@ -88,6 +88,7 @@ class SwiBlock(RegBlock):
             # Register Def
             #######################
             try:
+              raddr.setDebug()
               r = reg.parseString(line)
               if r:
                 if curreg:
@@ -95,8 +96,9 @@ class SwiBlock(RegBlock):
                 r_type_fix = "RW"
                 if r['type'] == "R":
                   r_type_fix = "RO"
-                  
+                
                 curreg = Register(r['name'], ("'h"+str(r['addr']['val'])), desc=r['desc'], rtype=r_type_fix)
+                #curreg = Register(r['name'], ("'h"+str(r.addr.val)), desc=r['desc'], rtype=r_type_fix)
                   
             except ParseException:
               pass

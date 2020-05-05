@@ -1,0 +1,20 @@
+ENABLE                          RW
+  i2c_en                        1'b1
+  clock_gate                    1'b0
+
+INTERRUPT                       RW
+  transaction_comp              1'b0      W1C
+  transaction_comp_int_en       1'b1
+
+SLAVE_ADDR                      RW
+  slave_addr                    10'h5b
+
+WDATA                           RW
+  wdata                         8'd0      WFIFO
+
+RDATA                           RO
+  rdata                         8'd0      RFIFO
+
+
+STATUS                          RO
+  fsm_state                     3'd0
