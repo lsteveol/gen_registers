@@ -6,6 +6,7 @@ A Python based tool for generating hardware registers and their associated files
 * **python** - Dir for python files
 * **docs** - Documentation using Sphinx
 * **exec** - Single file executables for deployment (are copied to top level after generation)
+* **tests** - Example testbench using the gr_uvm_reg_agent to validate any changes to the gen_regs_py or gen_uvm_reg_model script
 
 
 virtualenv

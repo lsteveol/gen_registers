@@ -1,0 +1,19 @@
+REG1                    RW
+  rw_bf1                1'b0            rw_bf1 description
+  rw_bf2                3'd4            rw_bf2 description
+  rw_bf2_mux            1'b0
+
+REG2                    RW
+  reg2_rw_bf1           8'd0            
+  reg2_ro_bf1           5'd0    RO
+  reg2_rw_bf2           1'b1
+  reg2_ro_bf2           1'b0    RO
+    
+REG3                    RW      {NO_REG_TEST}
+  my_wfifo_reg          8'd0    WFIFO
+
+REG4                    RO
+  my_rfifo_reg          8'd0    RFIFO
+
+REG5                    RW
+  my_w1c_bf             1'b0    W1C

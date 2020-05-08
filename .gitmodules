@@ -1,0 +1,3 @@
+[submodule "tests/sv/gr_uvm_reg_agent"]
+	path = tests/sv/gr_uvm_reg_agent
+	url = https://github.com/lsteveol/gr_uvm_reg_agent.git

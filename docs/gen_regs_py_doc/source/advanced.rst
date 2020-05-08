@@ -2,7 +2,7 @@ Advanced Features
 =================
 There are several features to gen_regs_py which either happen behind the scenes or may be needed in certain circumstances.
 
-* DebugBus - An auto-generated set of registers that allows the user to 'probe' signals that implement the ``Mux Override`` bitfield type
+* DebugBus - An auto-generated set of registers that allows the user to 'probe' signals that implement the ``Mux Override`` bitfield type. Also creates an output port for debugging.
 * DV Files - Files needed for DV or for designer testing
 * NO_REG_TEST - Excludes this register from register testing
 * DFT Features - Logic settings for various DFT modes
@@ -13,20 +13,23 @@ DebugBus
 * ``DEBUG_BUS_CTRL_SEL`` - Select signal for DEBUG_BUS_CTRL
 * ``DEBUG_BUS_CTRL_STATUS`` - Status output for DEBUG_BUS_STATUS
 
-.. note::
-  The signals corresponding to the DEBUG_BUS* registers are completely internal to the register block
+A port ``debug_bus_ctrl_status`` is also created. This is essentially the output of the RO ``DEBUG_BUS_CTRL_STATUS`` register. The intent is that 
+a user can connect this to an external debug bus (to GPIOs for example) and have a way to probe signals with a scope or inside the testbench.
 
-A Mux structure will be created so that a user can select the '_muxed' output to observe. ``DEBUG_BUS_CTRL_SEL`` is used to select the signal, 
+
+A Mux structure will be created so that a user can select the RO register or '_muxed' output to observe. ``DEBUG_BUS_CTRL_SEL`` is used to select the signal, 
 and ``DEBUG_BUS_CTRL_STATUS`` can be read to see the value of the signal.
 
-``DEBUG_BUS_CTRL_SEL`` width is determined by the number of muxed overrides. (e.g. 7 muxed overrides would result in the bitfield being 3bits in width).
+``DEBUG_BUS_CTRL_SEL`` width is determined by the number of RO registers and muxed overrides. (e.g.2 seprate registers with RO bitfields and 7 muxed overrides 
+would result in the bitfield being 4bits in width to handle 9 selections).
 
 .. warning::
   Currently the debugbus would only support up to 2^32 overrides. If you need more than this, well, I don't know what to tell you, but you
   may want to re-evaluate what you are trying to do.
 
-Each '_muxed' output is given it's own select value, and the position is based on the location of the '_muxed' output in the register file. If the 
-length of the '_muxed' output is smaller than 32bits, zeros are appended to the value.
+Each register with a RO bitfield or '_muxed' output is given it's own select value, and the position follows the following:
+* Registers with RO bitfields are set first, going from lowest address to highest
+* '_muxed' overrides are after and are based on the order in which they are declared in the file.
 
 Here is an example of the DEBUG_BUS registers in the RTL:
 
@@ -81,6 +84,11 @@ Here is an example of the DEBUG_BUS registers in the RTL:
   end 
   
   assign DEBUG_BUS_STATUS_reg_read = {          debug_bus_ctrl_status};
+
+.. note ::
+  
+  The debug_bus is generally assumed to be a backup testing feature and/or an easy way to add those "just in case" type of status
+  checks. It is not recommened to try to read the debug_bus in normal DV testing.
 
 
 

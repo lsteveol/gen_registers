@@ -34,18 +34,20 @@ class RegBlock(object):
     
     #Base name can be used to reference back to the lowest
     #level of the hierarchy
-    self.base_name= base_name.upper()
+    self.base_name      = base_name.upper()
     
-    self.name     = base_name.upper()          
-    self.base_addr= 0
-    self.reg_list = []
-    self.mapname  = mapname
+    self.name           = base_name.upper()          
+    self.base_addr      = 0
+    self.reg_list       = []
+    self.mapname        = mapname
     #Remove any underscores, python2 issue
-    mapaddr = re.sub(r'_', '', mapaddr)
-    self.mapaddr  = mapaddr
+    mapaddr             = re.sub(r'_', '', mapaddr)
+    self.mapaddr        = mapaddr
     
-    self.addr_width = 8
-    self.mux_list = []
+    self.addr_width     = 8
+    self.mux_list       = []
+    
+    self.has_debug_bus  = False
     
 #    self.RW_color = colors.HexColor("#7091ff")
 #    self.RO_color = colors.HexColor("#3dffae")
@@ -54,7 +56,7 @@ class RegBlock(object):
     
     
     #Address Width
-    self.addrw    = '32'
+    self.addrw          = '32'
 
   ################################################
   def add_reg(self, reg, bypass_bf_chk=0):
@@ -118,8 +120,20 @@ class RegBlock(object):
   def create_debug_bus(self):
     """Creates the debug bus for mux overrides if there are any mux signals"""
     
-    if self.mux_list:
-      num_dbg_regs = math.ceil(math.log(len(self.mux_list), 2))
+    # Check for any RO regs or bitfields with RO
+    num_ro_regs = 0
+    for r in self.reg_list:
+      has_ro = False
+      for bf in r.bf_list:
+        if bf.type == "RO":
+          has_ro = True
+      
+      if has_ro:
+        num_ro_regs += 1
+        
+    
+    if self.mux_list or (num_ro_regs > 0):
+      num_dbg_regs = math.ceil(math.log(len(self.mux_list) + num_ro_regs, 2))
       if num_dbg_regs == 0:
         num_dbg_regs = 1
       num_dbg_regs = int(num_dbg_regs)
@@ -377,9 +391,17 @@ class RegBlock(object):
     need_bscan_intf= False
     need_scan_port = False
     for r in self.reg_list:
-      #Skip the auto inserted debug
+      #Skip the auto inserted debug bus CTRL reg
       if r.name == "DEBUG_BUS_CTRL" or r.name == "DEBUG_BUS_STATUS":
-        continue
+        if r.name == "DEBUG_BUS_STATUS":
+          f.write("  //{0}\n".format(r.name))
+          f.write("  output reg  {0:7} debug_bus_ctrl_status,\n".format("[31:0]"))
+          continue
+        else:
+          continue
+      
+      #Status we will now bring out
+      
       
       f.write("  //{0}\n".format(r.name))      
       for bf in r.bf_list:
@@ -665,7 +687,7 @@ class RegBlock(object):
           
         #Special debug bus so just write wire and set the debug bus logic
         elif r.name == "DEBUG_BUS_STATUS" and bf.type == "RO":
-          f.write("  reg  {0:7} {1};\n".format(bf_width, bf.name.lower()))
+          #f.write("  reg  {0:7} {1};\n".format(bf_width, bf.name.lower()))   #removed since now a port
           self.print_debugbus(f)
         
         
@@ -1034,6 +1056,16 @@ endmodule
   ################################################
   def print_debugbus(self, f):
     """Called when we get to the debug bus status register"""
+    
+    #Helper Function
+    def get_leftover(b):
+      if b.length == 32:
+        return "{"
+      else:
+        leftover = "{0}'d0, ".format(32-b.length)
+        leftover = "{"+leftover
+        return leftover
+    
     dbb_str = """
   //Debug bus control logic  
   always @(*) begin
@@ -1042,12 +1074,44 @@ endmodule
     f.write(dbb_str)    
     
     index = 0
+    #RO Registers
+    for r in self.reg_list:
+      if r.name == "DEBUG_BUS_STATUS":
+        continue
+      first   = True
+      remain  = 32
+      bus_str = "}"
+      has_ro  = False
+      for bf in r.bf_list:
+        if bf.type == "RO":
+          has_ro    = True
+          if first:
+            bus_str = bf.name.lower() + bus_str
+            first   = False
+          else:
+            bus_str = bf.name.lower() + ", " + bus_str
+        else:
+          if first:
+            bus_str = "{0}'d0".format(bf.length) + bus_str
+            first   = False
+          else:
+            bus_str = "{0}'d0".format(bf.length) + ", " + bus_str
+            
+        remain = remain - bf.length
+      
+      if remain > 0:
+        bus_str = "{" + "{0}'d0, ".format(str(remain)) + bus_str
+      else:  
+        bus_str = "{" + bus_str
+        
+      if has_ro:
+        f.write("      {0:3} : debug_bus_ctrl_status = {1};\n".format(("'d"+str(index)), bus_str))
+        index += 1
+      
+    
+    #Mux overrides
     for mux_bf in self.mux_list:
-      if mux_bf.length == 32:
-        leftover = "{"
-      else:
-        leftover = "{0}'d0, ".format(32-mux_bf.length)
-        leftover = "{"+leftover
+      leftover = get_leftover(mux_bf)
       
       f.write("      {0:3} : debug_bus_ctrl_status = {1}swi_{2}_muxed{3};\n".format(("'d"+str(index)), leftover, mux_bf.name.lower(), "}"))
       index += 1

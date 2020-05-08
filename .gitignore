@@ -15,3 +15,9 @@ exec/*.spec
 
 #
 venv/
+
+
+# Ignore test output
+tests/run/waves.shm/
+tests/run/xcelium.d
+tests/run/xrun.*
