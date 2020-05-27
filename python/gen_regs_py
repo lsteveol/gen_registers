@@ -256,6 +256,7 @@ rb.create_debug_bus()
 if not for_dv:
   if not for_sphinx:
     rb.print_verilog(reg_prefix, reg_block, ahb)
+    #rb.gen_wire_inst(reg_prefix, reg_block)
 
 if for_dv:
   rb.print_dv_file(reg_prefix, reg_block)

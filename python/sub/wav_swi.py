@@ -45,7 +45,7 @@ class SwiBlock(RegBlock):
     rname   = Word(alphanums+'_').setResultsName('name')
     #raddr   = (Literal('0x') + (Word(nums+'ABCDEFabcdef')).setResultsName('val')).setResultsName('addr')
     raddr   = (oneOf("0x 0X") + (Word(nums+'ABCDEFabcdef')).setResultsName('val')).setResultsName('addr')
-    rtype   = oneOf("RW R").setResultsName('type')
+    rtype   = oneOf("RW R W1C WC").setResultsName('type')
     rdesc   = Optional(Regex(".*")).setResultsName('desc')
     reg     = rname + raddr + rtype + rdesc
     
@@ -88,7 +88,7 @@ class SwiBlock(RegBlock):
             # Register Def
             #######################
             try:
-              raddr.setDebug()
+              #raddr.setDebug()
               r = reg.parseString(line)
               if r:
                 if curreg:
@@ -96,6 +96,10 @@ class SwiBlock(RegBlock):
                 r_type_fix = "RW"
                 if r['type'] == "R":
                   r_type_fix = "RO"
+                elif r['type'] == "WC":
+                  r_type_fix = "WC"
+                elif r['type'] == "W1C":
+                  r_type_fix = "W1C"
                 
                 curreg = Register(r['name'], ("'h"+str(r['addr']['val'])), desc=r['desc'], rtype=r_type_fix)
                 #curreg = Register(r['name'], ("'h"+str(r.addr.val)), desc=r['desc'], rtype=r_type_fix)

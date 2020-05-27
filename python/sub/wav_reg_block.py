@@ -57,6 +57,10 @@ class RegBlock(object):
     
     #Address Width
     self.addrw          = '32'
+    
+    
+    self.wire_declare_list  = []
+    self.wire_declare_spacing = 10
 
   ################################################
   def add_reg(self, reg, bypass_bf_chk=0):
@@ -396,12 +400,15 @@ class RegBlock(object):
         if r.name == "DEBUG_BUS_STATUS":
           f.write("  //{0}\n".format(r.name))
           f.write("  output reg  {0:7} debug_bus_ctrl_status,\n".format("[31:0]"))
+          #self.wire_declare_list.append("wire {0:{spc}} debug_bus_ctrl_status;".format("[31:0]", spc=self.wire_declare_spacing))
+          self.add_wire_decl(bf, ["debug_bus_ctrl_status"])
           continue
         else:
           continue
       
       #Status we will now bring out
       
+      self.wire_declare_list.append("\n//{0}".format(r.name))
       
       f.write("  //{0}\n".format(r.name))      
       for bf in r.bf_list:
@@ -424,8 +431,9 @@ class RegBlock(object):
         #RO input
         if bf.type == "RO" and bf.rsvd == 0:
           f.write("  input  wire {0:7} {1},\n".format(bf_width, bf.name.lower()))
+          self.add_wire_decl(bf, [bf.name.lower()])
         
-        #RO input
+        #RO input that is reserved
         elif bf.type == "RO" and bf.rsvd == 1:
           pass # Do nothing
             
@@ -434,24 +442,29 @@ class RegBlock(object):
           #Skip the mux ones
           if not bf.name.endswith("_mux"):
             f.write("  output wire {0:7} swi_{1},\n".format(bf_width, bf.name.lower()))
+            self.add_wire_decl(bf, ["swi_{0}".format(bf.name.lower())])
         
         #RW with mux
         elif bf.type == "RW" and bf.has_mux == 1:
           #Core side input and _muxed output
           f.write("  input  wire {0:7} {1},\n".format(bf_width, bf.name.lower()))
           f.write("  output wire {0:7} swi_{1}_muxed,\n".format(bf_width, bf.name.lower()))
+          self.add_wire_decl(bf, ["{0}".format(bf.name.lower()), "swi_{0}_muxed".format(bf.name.lower())])
         
         elif bf.type == "W1C":
           f.write("  input  wire {0:7} w1c_in_{1},\n".format(bf_width, bf.name.lower()))
           f.write("  output wire {0:7} w1c_out_{1},\n".format(bf_width, bf.name.lower()))
+          self.add_wire_decl(bf, ["w1c_in_{0}".format(bf.name.lower()), "w1c_out_{0}".format(bf.name.lower())])
         
         elif bf.type == "WFIFO":
           f.write("  output wire {0:7} wfifo_{1},\n".format(bf_width, bf.name.lower()))
           f.write("  output wire {0:7} wfifo_winc_{1},\n".format("", bf.name.lower()))
+          self.add_wire_decl(bf, ["wfifo_{0}".format(bf.name.lower()), "wfifo_winc_{0}".format(bf.name.lower())])
         
         elif bf.type == "RFIFO":
           f.write("  input  wire {0:7} rfifo_{1},\n".format(bf_width, bf.name.lower()))
           f.write("  output wire {0:7} rfifo_rinc_{1},\n".format("", bf.name.lower()))
+          self.add_wire_decl(bf, ["rfifo_{0}".format(bf.name.lower()), "rfifo_rinc_{0}".format(bf.name.lower())])
         
         else:
           print("------Some error with this bf: {0}".format(bf.name))
@@ -1083,7 +1096,7 @@ endmodule
       bus_str = "}"
       has_ro  = False
       for bf in r.bf_list:
-        if bf.type == "RO":
+        if bf.type == "RO" and not bf.rsvd:
           has_ro    = True
           if first:
             bus_str = bf.name.lower() + bus_str
@@ -1122,6 +1135,38 @@ endmodule
   
 """
     f.write(dbb_str)  
+  
+  
+  ################################################
+  def add_wire_decl(self, bf, bfnames): #Note that bfnames is a list
+    """Creates the parameter and instantiation of the register signal to be included for RTL"""
+    
+    bf_width_par_val  = ""
+    bf_width_par_name = ""
+    bf_width_par_inst = ""
+    if bf.length > 1:
+      bf_width_par_name= bf.name.upper() + '_WIDTH_PARAM'
+      #bf_width_par_val = "localparam {0:{spc}} = {1};".format(bf_width_par_name, bf.length, spc=self.wire_declare_spacing)
+      #bf_width_par_val = "parameter {0:{spc}} = {1};".format(bf_width_par_name, bf.length, spc=self.wire_declare_spacing)
+      #bf_width_par_inst= "[{0}-1:0]".format(bf.name.upper() + '_WIDTH_PARAM')
+      bf_width_par_inst= "[{0}:0]".format(bf.length-1)
+    
+    
+    self.wire_declare_list.append(bf_width_par_val)
+    for bfname in bfnames:
+      self.wire_declare_list.append("wire       {0:{spc}} {1};".format(bf_width_par_inst, bfname, spc=self.wire_declare_spacing))
+  
+  ################################################
+  def gen_wire_inst(self, p, b, vfile=None):
+    """Creates a wire instantiation to be included where ever the regs are instantiated for ease of use"""
+    
+    vfile = p + "_" + b + "_regs_top_inst.vh"
+    f = open(vfile, 'w')
+    print("Generating file -- {0}".format(vfile))
+    
+    for w in self.wire_declare_list:
+      if w != "":
+        f.write(w+'\n')
   
   ################################################
   def gen_sphinx_table(self):
