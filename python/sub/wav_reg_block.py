@@ -1207,6 +1207,70 @@ endmodule
     
     print(mah_str)
   
+  
+  ################################################
+  def compare_prev_version(self, old_rb):
+    """Compares this register block with another register block 
+       and will print out the differences to the console"""
+        
+    for r in self.reg_list:
+      in_old = False
+      
+      for old_reg in old_rb.reg_list:
+        #If this reg was in previous
+        if r.name == old_reg.name:
+          in_old = True
+          pr_mod = False
+          
+          if r.get_addr_str() != old_reg.get_addr_str():
+            print("\nRegister      {0:30} ({1} -> {2}) modified".format(r.name, old_reg.get_addr_str(), r.get_addr_str()))
+            pr_mod = False
+          
+          for bf in r.bf_list:
+            bf_in_old = False
+            for old_bf in old_reg.bf_list:
+              if bf.name == old_bf.name:
+                bf_in_old     = True
+                type_diff     = False
+                length_diff   = False
+                reset_diff    = False
+                if bf.type != old_bf.type:
+                  type_diff   = True
+                if bf.length != old_bf.length:
+                  length_diff = True
+                if bf.get_reset_hex() != old_bf.get_reset_hex():
+                  reset_diff  = True
+                
+                if type_diff or length_diff or reset_diff:
+                  if not pr_mod:
+                    print("\nRegister      {0:30} ({1}) modified".format(r.name, r.get_addr_str())) 
+                    pr_mod = True
+                  print("|-- Bitfield  {0:30} {1}{2}{3}".format(bf.name.upper(), "Type: {0} -> {1}".format(old_bf.type, bf.type) if type_diff else "",
+                                                                               "Length: {0} -> {1}".format(old_bf.length, bf.length) if length_diff else "",
+                                                                               "Reset: {0} -> {1}".format(old_bf.get_reset_hex(), bf.get_reset_hex()) if reset_diff else ""))
+            
+            if not bf_in_old:
+              if not pr_mod:
+                print("\nRegister      {0:30} ({1}) modified".format(r.name, r.get_addr_str())) 
+                pr_mod = True
+              print("|-- Bitfield  {0:30} added".format(bf.name.upper()))
+            
+          for old_bf in old_reg.bf_list:
+            bf_in_new = False
+            for bf in r.bf_list:
+              if bf.name == old_bf.name:
+                bf_in_new = True
+
+            if not bf_in_new:
+              print("|-- Bitfield  {0:30} removed".format(old_bf.name.upper()))
+              
+            
+      if not in_old:
+        print("\nRegister      {0:30} ({1})  added".format(r.name, r.get_addr_str()))
+        for bf in r.bf_list:
+          print("|-- Bitfield  {0:30} added".format(bf.name.upper()))      
+    
+  
 #  ################################################
 #  def create_pdf(self, pdf):
 #    """Creates the PDF file for the reg block"""

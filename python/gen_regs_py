@@ -29,6 +29,7 @@ for_sphinx = False
 rb         = None
 debug      = False
 ahb        = False
+old_regs_txt  = False
 
 ############################
 # PyParsing Setup Grammar
@@ -68,7 +69,7 @@ bfpp = bn + bfr + bt + bfdft + bd
 
 
 ##########################
-def parse_reg_infile(infile):
+def parse_reg_infile(infile, regblock_obj):
   """Parses the input file and gets the register info"""
   
   curr_addr = 0
@@ -100,7 +101,7 @@ def parse_reg_infile(infile):
               line_is_good = 1
               #If curreg is != None, then old reg exists and should add to regblock
               if curreg:
-                rb.add_reg(curreg)
+                regblock_obj.add_reg(curreg)
                 curr_addr = curr_addr + 4
                 curlsb    = 0
               
@@ -176,7 +177,7 @@ def parse_reg_infile(infile):
           except ParseException:
             pass
       #Final reg add
-      rb.add_reg(curreg)
+      regblock_obj.add_reg(curreg)
 
 ##########################
 def get_args():
@@ -189,6 +190,7 @@ def get_args():
   parser.add_argument("-sphinx",                help="Generates Sphinx csv table for documentation", action='store_true')
   parser.add_argument("-dbg",                   help="Adds debugging", action='store_true')
   parser.add_argument("-ahb",                   help="Configures RTL output with AHB interface instead of APB", action='store_true')
+  parser.add_argument("-old", "-old_ver",       help="Pass a previous version of the regs.txt file to print out a formatted diff", type=str)
   
   args = parser.parse_args()
 
@@ -236,6 +238,10 @@ def get_args():
   if args.ahb:
     global ahb
     ahb = True
+  
+  if args.old:
+    global old_regs_txt
+    old_regs_txt = args.old
     
     
 ############################
@@ -246,7 +252,7 @@ get_args()
 rb = wrb.RegBlock()
 rb.base_name = (reg_prefix+'_'+reg_block).upper()
 
-parse_reg_infile(reg_infile)
+parse_reg_infile(reg_infile, rb)
 
 
 rb.check_for_muxes()
@@ -264,3 +270,17 @@ if for_dv:
 
 if for_sphinx:
   rb.gen_sphinx_table()
+
+
+#Comparing previous versions
+if old_regs_txt:
+  
+  print("Comparing {0} with old file {1}".format(reg_infile, old_regs_txt))
+  old_rb = wrb.RegBlock()
+  old_rb.base_name = (reg_prefix+'_'+reg_block).upper()
+  parse_reg_infile(old_regs_txt, old_rb)
+  old_rb.check_for_muxes()
+  old_rb.run_checks()
+  old_rb.create_debug_bus()
+  
+  rb.compare_prev_version(old_rb)
