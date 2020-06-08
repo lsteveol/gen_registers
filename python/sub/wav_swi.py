@@ -46,8 +46,13 @@ class SwiBlock(RegBlock):
     #raddr   = (Literal('0x') + (Word(nums+'ABCDEFabcdef')).setResultsName('val')).setResultsName('addr')
     raddr   = (oneOf("0x 0X") + (Word(nums+'ABCDEFabcdef')).setResultsName('val')).setResultsName('addr')
     rtype   = oneOf("RW R W1C WC").setResultsName('type')
-    rdesc   = Optional(Regex(".*")).setResultsName('desc')
-    reg     = rname + raddr + rtype + rdesc
+    
+    rnotst  = Optional(Literal('NO_REG_TEST')).setResultsName('reg_no_test')
+    #rdesc   = Optional(Regex(".*")).setResultsName('desc')
+    rdesc   = QuotedString('"').setResultsName('desc')
+    
+    
+    reg     = rname + raddr + rtype + rdesc + rnotst
     
     # Bitfield
     bfname  = Word(alphanums+'_').setResultsName('name')
@@ -101,7 +106,11 @@ class SwiBlock(RegBlock):
                 elif r['type'] == "W1C":
                   r_type_fix = "W1C"
                 
-                curreg = Register(r['name'], ("'h"+str(r['addr']['val'])), desc=r['desc'], rtype=r_type_fix)
+                notest = False
+                if r.reg_no_test:
+                  notest = True
+                
+                curreg = Register(r['name'], ("'h"+str(r['addr']['val'])), desc=r['desc'], rtype=r_type_fix, notest=notest)
                 #curreg = Register(r['name'], ("'h"+str(r.addr.val)), desc=r['desc'], rtype=r_type_fix)
                   
             except ParseException:
