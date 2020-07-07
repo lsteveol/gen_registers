@@ -26,7 +26,7 @@ import sys
 class RegBlock(object):
 
   ################################################
-  def __init__(self, base_name='', mapname='MAP_APB', mapaddr='0x0'):
+  def __init__(self, base_name='', mapname='MAP_APB', mapaddr='0x0', clock_mux_name='wav_clock_mux', demet_name='demet_reset'):
     """Base Name: Name associated with gen_regs file (-p/-b options)
        Name     : Name associated in the register space (basically like the instance).
                   i.e. if the base_name is WMP_TX, the name would be L0_WMP_TX
@@ -61,6 +61,9 @@ class RegBlock(object):
     
     self.wire_declare_list  = []
     self.wire_declare_spacing = 10
+    
+    self.clock_mux_name = clock_mux_name
+    self.demet_name     = demet_name
 
   ################################################
   def add_reg(self, reg, bypass_bf_chk=0):
@@ -770,13 +773,13 @@ class RegBlock(object):
             
             #Demet and rising edge logic
             demet_rise_logic = """
-  demet_reset u_demet_reset_{0} (
+  {4} u_{4}_{0} (
     .clk     ( {2:30}             ),              
     .reset   ( {3:30}             ),              
     .sig_in  ( w1c_in_{0:30}      ),            
     .sig_out ( reg_w1c_in_{1:30}  )); 
 
-""".format(bf.name.lower(), (bf.name.lower()+"_ff2"), "RegClk", "RegReset")
+""".format(bf.name.lower(), (bf.name.lower()+"_ff2"), "RegClk", "RegReset", self.demet_name)
             f.write(demet_rise_logic)
       
       ##############################
@@ -819,7 +822,7 @@ class RegBlock(object):
       
       f.write("\n")
       #RW Reg assignments
-      (last_bscan_bf_chk, last_tdo_name_chk) = r.print_rtl_assign_logic(f, last_bscan_bf, pre=p, block=b)
+      (last_bscan_bf_chk, last_tdo_name_chk) = r.print_rtl_assign_logic(f, last_bscan_bf, pre=p, block=b, clock_mux_name=self.clock_mux_name)
       if last_tdo_name_chk:
         last_tdo_name = last_tdo_name_chk
       if last_bscan_bf_chk:
@@ -1037,7 +1040,7 @@ wire  capture_in;
 reg   update;
 
 
-wav_clock_mux u_wav_clock_mux_capture_in (
+{2} u_{2}_capture_in (
     .clk0    ( pi         ),              
     .clk1    ( tdi        ),              
     .sel     ( shiftdr    ),      
@@ -1054,7 +1057,7 @@ end
 
 assign tdo = capture;
 
-wav_clock_mux u_wav_clock_mux_po (
+{2} u_{2}_po (
     .clk0    ( pi         ),              
     .clk1    ( update     ),              
     .sel     ( bscan_mode ),      
@@ -1062,7 +1065,7 @@ wav_clock_mux u_wav_clock_mux_po (
 
 
 endmodule
-""".format(p, b)
+""".format(p, b, self.clock_mux_name)
       f.write(jtag_bsr)
     
   

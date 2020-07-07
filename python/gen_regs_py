@@ -31,6 +31,9 @@ debug      = False
 ahb        = False
 old_regs_txt  = False
 
+clock_mux_name  = 'wav_clock_mux'
+demet_name      = 'demet_reset'
+
 ############################
 # PyParsing Setup Grammar
 ############################
@@ -191,6 +194,8 @@ def get_args():
   parser.add_argument("-dbg",                   help="Adds debugging", action='store_true')
   parser.add_argument("-ahb",                   help="Configures RTL output with AHB interface instead of APB", action='store_true')
   parser.add_argument("-old", "-old_ver",       help="Pass a previous version of the regs.txt file to print out a formatted diff", type=str)
+  parser.add_argument("-cm", "-clkmux_name",    help="Base module name for clock mux", type=str)
+  parser.add_argument("-dm", "-demet_name",     help="Base module name for demet", type=str)
   
   args = parser.parse_args()
 
@@ -242,14 +247,21 @@ def get_args():
   if args.old:
     global old_regs_txt
     old_regs_txt = args.old
-    
-    
+  
+  if args.cm:
+    global clock_mux_name
+    clock_mux_name = args.cm
+  
+  if args.dm:
+    global demet_name
+    demet_name = args.dm
+  
 ############################
 # Run
 ############################
 get_args()
 
-rb = wrb.RegBlock()
+rb = wrb.RegBlock(clock_mux_name=clock_mux_name, demet_name=demet_name)
 rb.base_name = (reg_prefix+'_'+reg_block).upper()
 
 parse_reg_infile(reg_infile, rb)

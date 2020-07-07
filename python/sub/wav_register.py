@@ -136,7 +136,7 @@ class Register():
   ################################################
   
   ################################################
-  def print_rtl_assign_logic(self, f, last_bscan_bf=None, pre=None, block=None):
+  def print_rtl_assign_logic(self, f, last_bscan_bf=None, pre=None, block=None, clock_mux_name='wav_clock_mux'):
     """This prints out the final assign statments for RW-type registers.
        Also handles the DFT functionality including BSCAN insertion.
        
@@ -164,13 +164,13 @@ class Register():
           last_wire = "swi_"+bf.name.lower()+"_muxed_pre"
           mux_str = """
   wire {2:6} {3};
-  wav_clock_mux u_wav_clock_mux_{0}{2} (
+  {4} u_{4}_{0}{2} (
     .clk0    ( {0:30}     ),              
     .clk1    ( reg_{0:30} ),              
     .sel     ( reg_{1:30} ),      
     .clk_out ( {3:30}     )); 
 
-""".format(bf.name.lower(), (bf.name.lower()+"_mux"), mux_array, last_wire)
+""".format(bf.name.lower(), (bf.name.lower()+"_mux"), mux_array, last_wire, clock_mux_name)
           f.write(mux_str)
         else:
           #Ignore _mux reg
@@ -187,13 +187,13 @@ class Register():
         if bf.core_scan or bf.dftall:
           mux_str = """
   wire {4:6} {5};
-  wav_clock_mux u_wav_clock_mux_{0}_core_scan_mode{4} (
+  {6} u_{6}_{0}_core_scan_mode{4} (
     .clk0    ( {1:30}     ),              
     .clk1    ( {3:30}     ),              
     .sel     ( {2:30}     ),      
     .clk_out ( {5:30}     )); 
 
-""".format(bf.name.lower(), last_wire, "dft_core_scan_mode", (str(bf.length)+"'d"+str(bf.core_scan) if bf.core_scan else str(bf.length)+"'d"+str(bf.dftall)), mux_array, (default+"_core_scan_mode"))
+""".format(bf.name.lower(), last_wire, "dft_core_scan_mode", (str(bf.length)+"'d"+str(bf.core_scan) if bf.core_scan else str(bf.length)+"'d"+str(bf.dftall)), mux_array, (default+"_core_scan_mode"), clock_mux_name)
           f.write(mux_str)
           last_wire = default+"_core_scan_mode"
         
@@ -201,13 +201,13 @@ class Register():
         if bf.iddq or bf.dftall:
           mux_str = """
   wire {4:6} {5};
-  wav_clock_mux u_wav_clock_mux_{0}_iddq_mode{4} (
+  {6} u_{6}_{0}_iddq_mode{4} (
     .clk0    ( {1:30}     ),              
     .clk1    ( {3:30}     ),              
     .sel     ( {2:30}     ),      
     .clk_out ( {5:30}     )); 
 
-""".format(bf.name.lower(), last_wire, "dft_iddq_mode", (str(bf.length)+"'d"+str(bf.iddq) if bf.iddq else str(bf.length)+"'d"+str(bf.dftall)), mux_array, (default+"_iddq_mode"))
+""".format(bf.name.lower(), last_wire, "dft_iddq_mode", (str(bf.length)+"'d"+str(bf.iddq) if bf.iddq else str(bf.length)+"'d"+str(bf.dftall)), mux_array, (default+"_iddq_mode"), clock_mux_name)
           f.write(mux_str)
           last_wire = default+"_iddq_mode"
         
@@ -215,13 +215,13 @@ class Register():
         if bf.hiz or bf.dftall:
           mux_str = """
   wire {4:6} {5};
-  wav_clock_mux u_wav_clock_mux_{0}_hiz_mode{4} (
+  {6} u_{6}_{0}_hiz_mode{4} (
     .clk0    ( {1:30}     ),              
     .clk1    ( {3:30}     ),              
     .sel     ( {2:30}     ),      
     .clk_out ( {5:30}     )); 
 
-""".format(bf.name.lower(), last_wire, "dft_hiz_mode", (str(bf.length)+"'d"+str(bf.hiz) if bf.hiz else str(bf.length)+"'d"+str(bf.dftall)), mux_array, (default+"_hiz_mode"))
+""".format(bf.name.lower(), last_wire, "dft_hiz_mode", (str(bf.length)+"'d"+str(bf.hiz) if bf.hiz else str(bf.length)+"'d"+str(bf.dftall)), mux_array, (default+"_hiz_mode"), clock_mux_name)
           f.write(mux_str)
           last_wire = default+"_hiz_mode"
         
@@ -229,13 +229,13 @@ class Register():
         if bf.bscan or bf.dftall:
           mux_str = """
   wire {4:6} {5};
-  wav_clock_mux u_wav_clock_mux_{0}_bscan_mode{4} (
+  {6} u_{6}_{0}_bscan_mode{4} (
     .clk0    ( {1:30}     ),              
     .clk1    ( {3:30}     ),              
     .sel     ( {2:30}     ),      
     .clk_out ( {5:30}     )); 
 
-""".format(bf.name.lower(), last_wire, "dft_bscan_mode", (str(bf.length)+"'d"+str(bf.bscan) if bf.bscan else str(bf.length)+"'d"+str(bf.dftall)), mux_array, (default+"_bscan_mode"))
+""".format(bf.name.lower(), last_wire, "dft_bscan_mode", (str(bf.length)+"'d"+str(bf.bscan) if bf.bscan else str(bf.length)+"'d"+str(bf.dftall)), mux_array, (default+"_bscan_mode"), clock_mux_name)
           f.write(mux_str)
           last_wire = default+"_bscan_mode"
         

@@ -14,7 +14,7 @@ if(-e $blk_name) then
 endif
 echo "BLK:test_regs.txt    N/A   my    reg    0x0000" >> $blk_name
 
-$scripts/gen_regs_py        -i test_regs.txt -p test -b regs
+$scripts/gen_regs_py        -i test_regs.txt -p test -b regs 
 $scripts/gen_uvm_reg_model  -b $blk_name  -o $reg_model
 
 

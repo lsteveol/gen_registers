@@ -1,6 +1,6 @@
 //===================================================================
 //
-// Created by sbridges on May/27/2020 at 11:27:50
+// Created by sbridges on July/07/2020 at 14:07:45
 //
 // test_regs_regs_top.v
 //
@@ -141,7 +141,7 @@ module test_regs_regs_top #(
   //-----------------------
 
   wire [2:0]  swi_rw_bf2_muxed_pre;
-  wav_clock_mux u_wav_clock_mux_rw_bf2[2:0] (
+  booboo_mux u_booboo_mux_rw_bf2[2:0] (
     .clk0    ( rw_bf2                             ),              
     .clk1    ( reg_rw_bf2                         ),              
     .sel     ( reg_rw_bf2_mux                     ),      
@@ -247,7 +247,7 @@ module test_regs_regs_top #(
     end
   end
 
-  demet_reset u_demet_reset_my_w1c_bf (
+  mai_demet u_mai_demet_my_w1c_bf (
     .clk     ( RegClk                                     ),              
     .reset   ( RegReset                                   ),              
     .sig_in  ( w1c_in_my_w1c_bf                           ),            
