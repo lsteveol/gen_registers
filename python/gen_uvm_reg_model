@@ -184,17 +184,22 @@ def run_gen_regs_dv(file, pre, bname, mapname, mapaddr, dv_file=0, use_gr_py=0):
 
 ##########################
 def check_env_var_and_update(s):
-  m = re.match(r'\${(.*?)}', s)
+  
+  if debug:
+    print("DBG: in check_env_var_and_update on %s" % s)
+
+  m = re.search(r'\${(.*?)}', s)
   if m:
     evar = os.getenv(m.group(1))
+    
     if debug:
       print("DBG: Envrionment variable %s expands to %s" % (m.group(1), evar))
     if not evar:
       print("Error: Environment variable %s is not defined! Please ensure this is defined before running" % m.group(1))
       graceful_exit()
     
-    s = re.sub(r'\${(.*?)}', '', s)
-    s = evar+'/'+s
+    s = re.sub(r'\${(.*?)}', evar, s)
+    #s = evar+'/'+s
   
   return s
 
@@ -243,7 +248,7 @@ def parse_blk(bfile, is_top=1, base='0x0', recur=0, higher_sysname=""):
         line = line.rstrip("\n\r")
         if not line.startswith("#") and line.strip():
           if debug:
-            print("DGB: Working on: %s" % line)
+            print("DBG: Working on: %s" % line)
             
           #Remove any beginning white space. Check for SYS/BLK
           
