@@ -492,9 +492,9 @@ class RegBlock(object):
     #Only if FLOPs are used
     if need_bscan_intf:
       dft_ports   += '  // BSCAN Shift Interface\n'
-      #dft_ports   += '  //input  wire dft_bscan_tck,\n'
-      #dft_ports   += '  //input  wire dft_bscan_trstn,\n'
-      dft_ports   += '  input  wire dft_bscan_clockdr,\n'
+      dft_ports   += '  input  wire dft_bscan_tck,\n'
+      dft_ports   += '  input  wire dft_bscan_trst_n,\n'
+      dft_ports   += '  input  wire dft_bscan_capturedr,\n'
       dft_ports   += '  input  wire dft_bscan_shiftdr,\n'
       dft_ports   += '  input  wire dft_bscan_updatedr,\n'
       dft_ports   += '  input  wire dft_bscan_tdi,\n'
@@ -1024,8 +1024,10 @@ endmodule
       
 //JTAG BSR Flop
 module {0}_{1}_jtag_bsr(
+  input  wire tck,
+  input  wire trst_n,
   input  wire bscan_mode,
-  input  wire clockdr,      
+  input  wire capturedr,      
   input  wire shiftdr,
   input  wire updatedr,
   input  wire pi,
@@ -1035,37 +1037,20 @@ module {0}_{1}_jtag_bsr(
 );
 
 
-reg   capture;
-wire  capture_in;
-reg   update;
-
-
-{2} u_{2}_capture_in (
-    .clk0    ( pi         ),              
-    .clk1    ( tdi        ),              
-    .sel     ( shiftdr    ),      
-    .clk_out ( capture_in )); 
-    
-    
-always @(posedge clockdr) begin
-  capture <= capture_in;
-end
-
-always @(posedge updatedr) begin
-  update <= capture;
-end
-
-assign tdo = capture;
-
-{2} u_{2}_po (
-    .clk0    ( pi         ),              
-    .clk1    ( update     ),              
-    .sel     ( bscan_mode ),      
-    .clk_out ( po         )); 
-
-
+wav_jtag_bsr u_wav_jtag_bsr (
+  .i_tck         ( tck            ),     
+  .i_trst_n      ( trst_n         ),     
+  .i_bsr_mode    ( bscan_mode     ),     
+  .i_capture     ( capturedr      ),       
+  .i_shift       ( shiftdr        ),       
+  .i_update      ( updatedr       ),       
+  .i_pi          ( pi             ),       
+  .o_po          ( po             ),       
+  .i_tdi         ( tdi            ),       
+  .o_tdo         ( tdo            )); 
+  
 endmodule
-""".format(p, b, self.clock_mux_name)
+""".format(p, b)
       f.write(jtag_bsr)
     
   

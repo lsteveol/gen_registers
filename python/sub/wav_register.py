@@ -278,17 +278,19 @@ class Register():
                 
           bsr_po  = "{0}_bscan_flop_po".format(bf.name.lower())
           bsr_str = """
+
   wire {1} {3};
   {6}_{7}_jtag_bsr u_{6}_{7}_jtag_bsr_{0}{1} (   
-    .bscan_mode ( dft_bscan_mode                     ),          
-    .clockdr    ( dft_bscan_clockdr                  ),          
+    .tck        ( dft_bscan_tck                      ),          
+    .trst_n     ( dft_bscan_trst_n                   ),      
+    .bscan_mode ( dft_bscan_mode                     ),
+    .capturedr  ( dft_bscan_capturedr                ),
     .shiftdr    ( dft_bscan_shiftdr                  ),          
     .updatedr   ( dft_bscan_updatedr                 ),               
     .pi         ( {2:30}     ),               
     .po         ( {3:30}     ),               
     .tdi        ( {4:30}     ),                
     .tdo        ( {5:30}     )); 
-
 
 """.format(bf.name.lower(), mux_array, last_wire, bsr_po, tdi_str, tdo_str, pre, block)
           f.write(bsr_str)
@@ -345,16 +347,18 @@ class Register():
                 
                 
           bsr_str = """
-  {6}_{7}_jtag_bsr u_{6}_{7}_jtag_bsr_{0}{1} (
-    .bscan_mode ( dft_bscan_mode                     ),          
-    .clockdr    ( dft_bscan_clockdr                  ),          
+//  wire {1} {3};
+  {6}_{7}_jtag_bsr u_{6}_{7}_jtag_bsr_{0}{1} (   
+    .tck        ( dft_bscan_tck                      ),          
+    .trst_n     ( dft_bscan_trst_n                   ),      
+    .bscan_mode ( dft_bscan_mode                     ),
+    .capturedr  ( dft_bscan_capturedr                ),
     .shiftdr    ( dft_bscan_shiftdr                  ),          
     .updatedr   ( dft_bscan_updatedr                 ),               
     .pi         ( {2:30}     ),               
     .po         ( {3:30}     ),               
     .tdi        ( {4:30}     ),                
     .tdo        ( {5:30}     )); 
-
 
 """.format(bf.name.lower(), mux_array, bf.name.lower(), "/*noconn*/", tdi_str, tdo_str, pre, block)
           f.write(bsr_str)
