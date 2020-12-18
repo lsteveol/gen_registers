@@ -102,11 +102,13 @@ class SwiBlock(RegBlock):
                 if r['type'] == "R":
                   r_type_fix = "RO"
                 elif r['type'] == "WC":
-                  r_type_fix = "WC"
+                  #r_type_fix = "WC"
+                  r_type_fix = "WO"     #Fix for reg model build
                 elif r['type'] == "W1C":
                   r_type_fix = "W1C"
                 elif r['type'] == "W1T":
-                  r_type_fix = "W1T"
+                  #r_type_fix = "W1T"
+                  r_type_fix = "WO"     #Fix for reg model build
                 
                 notest = False
                 if r.reg_no_test:
