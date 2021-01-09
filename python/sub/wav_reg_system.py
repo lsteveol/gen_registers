@@ -16,6 +16,7 @@ The {key : val} pair is:
 
 """
 import wav_reg_block as wrb
+import wav_reg_mem as wrm
 from collections import OrderedDict
 import wav_print as wp
 import sys
@@ -89,6 +90,8 @@ class RegSystem():
     for key in self.rb_list:
       if isinstance(self.rb_list[key], wrb.RegBlock):
         self.rb_list[key].add_prefix(prefix)
+      elif isinstance(self.rb_list[key], wrm.RegMem):
+        self.rb_list[key].add_prefix(prefix)
       else:
         self.rb_list[key].add_global_prefix(prefix)
   
@@ -139,9 +142,16 @@ class RegSystem():
     
     self.rb_list[key] = system
     
+  ################################################
+  def add_mem(self, key, mem):
   
-  
+    if key in self.rb_list:
+      print("Error: Address %s is already defined for another RegBlock: %s!" % (str(key), mem.name))
+      print("       Please Resolve. Exiting....")
+      sys.exit(1)
+    self.rb_list[key] = mem
     
+    self.rb_list[key].update_mem_with_new_base(key)
     
   
   ################################################
@@ -185,7 +195,10 @@ class RegSystem():
             
       else:
         #Drill down into another System
-        err = self.rb_list[key].get_all_maps(is_top=0, top_map_dict=top_map_dict)
+        if isinstance(self.rb_list[key], wrm.RegMem):
+          pass
+        else:
+          err = self.rb_list[key].get_all_maps(is_top=0, top_map_dict=top_map_dict)
     
     return err
   
@@ -233,7 +246,10 @@ class RegSystem():
       if isinstance(self.rb_list[key], wrb.RegBlock):
         f.write('{0} RegBlock: {1:40} @ 0x{2}\n'.format(indent, \
                         (self.rb_list[key].name+'('+self.rb_list[key].base_name+')'), self.rb_list[key].reg_list[0].addr_hex))
-        
+      
+      elif isinstance(self.rb_list[key], wrm.RegMem):  
+        f.write('{0} RegBlock: {1:40} @ 0x{2}\n'.format(indent, \
+                self.rb_list[key].name, self.rb_list[key].base_addr))
       else:
         self.rb_list[key].print_topology(f=f, indent=indent+'  ')
     
@@ -269,6 +285,8 @@ class RegSystem():
     for key in self.rb_list:
       if isinstance(self.rb_list[key], wrb.RegBlock):
         self.rb_list[key].print_uvm_reg_class(f)
+      elif isinstance(self.rb_list[key], wrm.RegMem):
+        self.rb_list[key].print_uvm_mem_class(f)
       else:
         self.rb_list[key].print_uvm_reg_class(f)
   
@@ -314,7 +332,7 @@ class RegSystem():
   
   ################################################
   def print_uvm_reg_model_top(self, f, reg_model_name=None, is_top=1):
-    """Prints the top level of the uvm reg file (where each the wav_reg_model is extended)
+    """Prints the top level of the uvm reg file (where each the uvm_reg_block is extended)
        as it's own class. Will call functions in the reg_block to perform this
        operation"""  
     
@@ -326,6 +344,8 @@ class RegSystem():
     for key in self.rb_list:
       if isinstance(self.rb_list[key], wrb.RegBlock):
         self.rb_list[key].print_uvm_reg_model_top_register(f)
+      elif isinstance(self.rb_list[key], wrm.RegMem):
+        self.rb_list[key].print_uvm_reg_model_top_mem(f)
       else:
         self.rb_list[key].print_uvm_reg_model_top(f, is_top=0)
       

@@ -12,6 +12,7 @@ import wav_bitfield as wbf
 import wav_register as wr
 import wav_reg_block as wrb
 import wav_reg_system as wrs
+import wav_reg_mem as wrm
 import wav_print as wp
 from wav_swi import *
 
@@ -74,7 +75,7 @@ def graceful_exit():
   sys.exit(1)
 
 ##########################
-def run_gen_regs_dv(file, pre, bname, mapname, mapaddr, dv_file=0, use_gr_py=0):
+def run_gen_regs_dv(file, pre, bname, mapname, mapaddr, dv_file=0, use_gr_py=0, force_notest=0):
   """Runs gen_regs with -dv flags and parse that file. Creates
      a RegBlock with the collections of Bitfields/Registers based on
      the regfile. 
@@ -144,7 +145,7 @@ def run_gen_regs_dv(file, pre, bname, mapname, mapaddr, dv_file=0, use_gr_py=0):
         #Look for NO_REG_TEST
         notest = False
         m = re.search(r'<NO_REG_TEST>', line)
-        if m: 
+        if m or force_notest: 
           notest = True         
           line = re.sub(r'<NO_REG_TEST>', '', line) 
         
@@ -256,6 +257,8 @@ def parse_blk(bfile, is_top=1, base='0x0', recur=0, higher_sysname=""):
           # BLK
           #####################################
           if re.search(r'^\s*BLK:', line):
+            use_gr_py    = 1
+            force_notest = 0
             #Block level, create the dv file and open it for parsing. Save the 
             #data to a bitfield/register/reg_block class
             line    = re.sub(r'^\s*BLK:', '', line)
@@ -272,8 +275,8 @@ def parse_blk(bfile, is_top=1, base='0x0', recur=0, higher_sysname=""):
             regblockname  = vars[3]
             regoffset     = fix_hex_addr(vars[4])
             if len(vars) == 6:
-              if vars[5] == "-py":
-                use_gr_py = 1
+              if vars[5] == "-nrt":
+                force_notest = 1
               else:
                 print("Error for last element of BLK line ({}):".format(vars[5]))
                 print(" Line: %s" % line)
@@ -290,7 +293,7 @@ def parse_blk(bfile, is_top=1, base='0x0', recur=0, higher_sysname=""):
               set_err()
             else:
               #Get DV Txt File
-              rb = run_gen_regs_dv(regfile, regprefix, regblockname, mapname=curmapname, mapaddr=curmapaddr, use_gr_py=use_gr_py) 
+              rb = run_gen_regs_dv(regfile, regprefix, regblockname, mapname=curmapname, mapaddr=curmapaddr, use_gr_py=use_gr_py, force_notest=force_notest) 
               
               if cheader:
                 rb.print_ch_file()
@@ -437,6 +440,30 @@ def parse_blk(bfile, is_top=1, base='0x0', recur=0, higher_sysname=""):
                 #Compute the Offset based on the recursion
                 calcoffset = hex(int(dvoffset, 16) + int(base, 16))
                 current_system.add_reg_block(calcoffset, rb)
+          
+          #####################################
+          # MEM (uvm_mem)
+          # MEMNAME   DEPTH   WIDTH     BASE_ADDR
+          #####################################  
+          elif re.search(r'^\s*MEM:', line):
+            line    = re.sub(r'^\s*MEM:', '', line)
+            vars    = line.split()
+            if len(vars) != 3:
+              print("Error: Something is incorrect with line #%d" % linenum)
+              print("       Expecting 3 entries but see %d" % len(vars))
+              print(" Line: %s" % line)
+              set_err()
+            
+          
+            memname, memdepth, memoffset = vars[0], int(vars[1], 16), fix_hex_addr(vars[2])
+            mem = wrm.RegMem(memname, memdepth, 32, mapname=curmapname, mapaddr=curmapaddr)
+            
+            if is_top:
+                top_reg_system.add_mem(memoffset, mem)
+            else:
+              #Compute the Offset based on the recursion
+              calcoffset = hex(int(memoffset, 16) + int(base, 16))
+              current_system.add_mem(calcoffset, mem)
             
           #####################################
           # MAP
