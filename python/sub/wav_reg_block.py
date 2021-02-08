@@ -318,7 +318,8 @@ class RegBlock(object):
     
     
     if not fh:
-      chf = self.base_name.lower() + "_c_defines.h"
+      #chf = self.base_name.lower() + "_c_defines.h"
+      chf = self.base_name.lower() + "_csr.h"
       f = open(chf, 'w')
       print("Generating file -- {0}".format(chf))
       head = wp.print_verilog_c_script_header(chf)
@@ -326,6 +327,8 @@ class RegBlock(object):
     else:
       f = fh
      
+    f.write('#ifndef _{0}_CSR_H_\n'.format(self.base_name.upper())) 
+    f.write('#define _{0}_CSR_H_\n'.format(self.base_name.upper())) 
     
     f.write('// C Headers for {0}\n'.format(self.base_name.lower()))
     f.write('// Base Address : 0x{0}\n'.format(self.base_addr))
@@ -335,9 +338,9 @@ class RegBlock(object):
       addr_lo     = format(addr_lo, 'x').zfill(16)
       addr_hi     = (int(r.addr_hex, 16) & (4294967295<<32)) >> 32
       addr_hi     = format(addr_hi, 'x').zfill(16)
-      f.write('#define {0:100} 0x{1:20}    //Address\n'.format(self.name + r.name.upper(), addr_padded))
-      f.write('#define {0:100} 0x{1:20}    //Address Lower 32bits\n'.format(self.name + r.name.upper() +'__LO', addr_lo))
-      f.write('#define {0:100} 0x{1:20}    //Address Upper 32bits\n'.format(self.name + r.name.upper() +'__HI', addr_hi))
+      #f.write('#define {0:100} 0x{1:20}    //Address\n'.format(self.name + r.name.upper(), addr_padded))
+      #f.write('#define {0:100} 0x{1:20}    //Address Lower 32bits\n'.format(self.name + r.name.upper() +'__LO', addr_lo))
+      #f.write('#define {0:100} 0x{1:20}    //Address Upper 32bits\n'.format(self.name + r.name.upper() +'__HI', addr_hi))
       for bf in r.bf_list:
         #Mask
         bfmask = 0
@@ -346,11 +349,18 @@ class RegBlock(object):
           bfmask += 2**bitcount
           bitcount += 1
         bfmask = '0x' + format(bfmask, 'x').zfill(8)
-        f.write('#define {0:100} {1:20}      //Desc : {2}\n'.format(self.name + r.name.upper() + '__' + bf.name.upper() + '__MASK', bfmask, bf.desc))
+        bflsb  = '0x' + format(int(bf.lsb), 'x').zfill(8)
+        f.write('#define {0:100} ( {1:20}   )      //Desc : {2}\n'.format(self.name + r.name.upper() + '_' + bf.name.upper() + '__MSK', bfmask, bf.desc))
         
-        f.write('#define {0:100} {1:20}      //Reset: {2}{3}\n'.format(self.name + r.name.upper() + '__' + bf.name.upper() + '__SHIFT', bf.lsb, bf.length, bf.get_reset_hex_verilog()))
+        #f.write('#define {0:100} ( {1:20} )      //Reset: {2}{3}\n'.format(self.name + r.name.upper() + '_' + bf.name.upper() + '__SHFT', bf.lsb, bf.length, bf.get_reset_hex_verilog()))
+        f.write('#define {0:100} ( {1:20}   )      //Reset: {2}{3}\n'.format(self.name + r.name.upper() + '_' + bf.name.upper() + '__SHFT', bflsb, bf.length, bf.get_reset_hex_verilog()))
+      
+      f.write('#define {0:100} ( 0x{1:20} )      //Address \n'.format(self.name + r.name.upper() +'__ADR', addr_padded))
+      
       
       f.write('\n')
+      
+    f.write('#endif /* _{0}_CSR_H_ */\n'.format(self.base_name.upper())) 
     f.write('\n')
     
   ################################################

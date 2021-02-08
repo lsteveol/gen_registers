@@ -327,6 +327,8 @@ class RegSystem():
     for key in self.rb_list:
       if isinstance(self.rb_list[key], wrb.RegBlock):
         self.rb_list[key].print_ch_file(f)
+      elif isinstance(self.rb_list[key], wrm.RegMem):
+        pass
       else:
         self.rb_list[key].print_ch_file(f)
   

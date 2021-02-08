@@ -387,9 +387,12 @@ def parse_blk(bfile, is_top=1, base='0x0', recur=0, higher_sysname=""):
               set_err()
             else:
               rb = run_gen_regs_dv(dvfile, dvprefix, '', mapname=curmapname, mapaddr=curmapaddr, dv_file=1) 
-              rb.base_name = dvprefix.upper()+'_'
+              #rb.base_name = dvprefix.upper()+'_'
               if cheader:
+                rb.base_name = dvprefix.upper() #temp workaround for c header files
                 rb.print_ch_file()
+              
+              rb.base_name = dvprefix.upper()+'_'
               
               #Add the prefix to the name
               rb.add_prefix(dvprefix)
@@ -424,11 +427,13 @@ def parse_blk(bfile, is_top=1, base='0x0', recur=0, higher_sysname=""):
             else:
               #rb = run_gen_regs_dv(dvfile, dvprefix, '', mapname=curmapname, mapaddr=curmapaddr, dv_file=1) 
               rb = SwiBlock(filename=dvfile, base_name='', mapname=curmapname, mapaddr=curmapaddr)
-              rb.base_name = dvprefix.upper()+'_'
+              #rb.base_name = dvprefix.upper()+'_'
               #We need to print the vh file since not through gen_regs
               rb.print_ad_file(dvprefix, 'swi')
               if cheader:
+                rb.base_name = dvprefix.upper() #temp workaround for c header files
                 rb.print_ch_file()
+              rb.base_name = dvprefix.upper()+'_'
               
               #Add the prefix to the name
               

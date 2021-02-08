@@ -52,7 +52,7 @@ class SwiBlock(RegBlock):
     rdesc   = QuotedString('"').setResultsName('desc')
     
     
-    reg     = rname + raddr + rtype + rdesc + rnotst
+    reg     = rname + raddr + rtype + rdesc + Optional('None') + rnotst
     
     # Bitfield
     bfname  = Word(alphanums+'_').setResultsName('name')
