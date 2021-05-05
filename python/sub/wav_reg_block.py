@@ -1007,7 +1007,7 @@ class RegBlock(object):
         for bf in r.bf_list:
           if bf.bsflop and (bf.type == "RW"): #Only dealing with RW for now
             if bf.length > 1:
-              for i in range(bf.length):
+              for i in reversed(range(bf.length)):
                 f.write('          $fwrite(file, "%1b // jtag_chain{2} {0}[{1}]\\n", reg_{0}[{1}]);\n'.format(bf.name, i, jtag_index))
                 jtag_index += 1
             else:

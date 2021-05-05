@@ -45,7 +45,7 @@ class SwiBlock(RegBlock):
     rname   = Word(alphanums+'_').setResultsName('name')
     #raddr   = (Literal('0x') + (Word(nums+'ABCDEFabcdef')).setResultsName('val')).setResultsName('addr')
     raddr   = (oneOf("0x 0X") + (Word(nums+'ABCDEFabcdef')).setResultsName('val')).setResultsName('addr')
-    rtype   = oneOf("RW R W1C WC W1T").setResultsName('type')
+    rtype   = oneOf("RW R W1C WC W1T WO").setResultsName('type')
     
     rnotst  = Optional(Literal('NO_REG_TEST')).setResultsName('reg_no_test')
     #rdesc   = Optional(Regex(".*")).setResultsName('desc')

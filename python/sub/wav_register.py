@@ -244,7 +244,8 @@ class Register():
           f.write("  wire {0} {1}_tdo;\n".format(mux_array, bf.name.lower()))
           #Get the chain
           if last_bscan_bf:
-            if last_bscan_bf.length > 1: bit_index = '[{0}]'.format(str(int(last_bscan_bf.length)-1))
+            #if last_bscan_bf.length > 1: bit_index = '[{0}]'.format(str(int(last_bscan_bf.length)-1))
+            if last_bscan_bf.length > 1: bit_index = '[0]'  #always 0 now
             else:                        bit_index = ''
             head_tdi = '{0}_tdo{1}'.format(last_bscan_bf.name.lower(), bit_index)    #Last one and include the bit index
           else:
@@ -256,25 +257,45 @@ class Register():
           if bf.length == 1:
             tdi_str = head_tdi
             tdo_str = '{0}_tdo'.format(bf.name.lower()) 
+            last_tdo_name = tdo_str
           else:
+            ##Need to shift tdis
+#            tdi_str = '{'+'{0}_tdo[{1}],\n'.format(bf.name.lower(), str(bf.length-2))
+#            for x in reversed(range(bf.length-1)):
+#              if x == 0:
+#                tdi_str += '{0}{1}'.format(whitesp, head_tdi)
+#                tdi_str += '}'
+#              else:
+#                tdi_str += '{0}{1}_tdo[{2}],\n'.format(whitesp, bf.name.lower(), str(x-1)) 
+#
+#            #tdos
+#            tdo_str = '{'+'{0}_tdo[{1}],\n'.format(bf.name.lower(), str(bf.length-1))
+#            for x in reversed(range(bf.length-1)):
+#              if x == 0:
+#              #if x == bf.length:
+#                tdo_str += '{0}{1}_tdo[{2}]'.format(whitesp, bf.name.lower(), str(x))
+#                tdo_str += '}'
+#              else:
+#                tdo_str += '{0}{1}_tdo[{2}],\n'.format(whitesp, bf.name.lower(), str(x)) 
             #Need to shift tdis
-            tdi_str = '{'+'{0}_tdo[{1}],\n'.format(bf.name.lower(), str(bf.length-2))
+            tdi_str = '{'+'{0},\n'.format(head_tdi)
             for x in reversed(range(bf.length-1)):
               if x == 0:
-                tdi_str += '{0}{1}'.format(whitesp, head_tdi)
+                tdi_str += '{0}{1}_tdo[{2}]'.format(whitesp,  bf.name.lower(), str(x+1))
                 tdi_str += '}'
               else:
-                tdi_str += '{0}{1}_tdo[{2}],\n'.format(whitesp, bf.name.lower(), str(x-1)) 
+                tdi_str += '{0}{1}_tdo[{2}],\n'.format(whitesp, bf.name.lower(), str(x+1)) 
 
             #tdos
             tdo_str = '{'+'{0}_tdo[{1}],\n'.format(bf.name.lower(), str(bf.length-1))
             for x in reversed(range(bf.length-1)):
               if x == 0:
+              #if x == bf.length:
                 tdo_str += '{0}{1}_tdo[{2}]'.format(whitesp, bf.name.lower(), str(x))
                 tdo_str += '}'
+                last_tdo_name = '{0}_tdo[0]'.format(bf.name.lower())
               else:
-                tdo_str += '{0}{1}_tdo[{2}],\n'.format(whitesp, bf.name.lower(), str(x)) 
-                
+                tdo_str += '{0}{1}_tdo[{2}],\n'.format(whitesp, bf.name.lower(), str(x))   
                 
           bsr_po  = "{0}_bscan_flop_po".format(bf.name.lower())
           bsr_str = """
@@ -297,7 +318,7 @@ class Register():
           last_wire = bsr_po
           # Update the last_scan_ bitfield so the next BSR chain knows where to start
           last_bscan_bf= bf
-          last_tdo_name=tdo_str
+          #last_tdo_name=tdo_str
         
         
         
@@ -314,7 +335,8 @@ class Register():
           f.write("  wire {0} {1}_tdo;\n".format(mux_array, bf.name.lower()))
           #Get the chain
           if last_bscan_bf:
-            if last_bscan_bf.length > 1: bit_index = '[{0}]'.format(str(int(last_bscan_bf.length)-1))
+            #if last_bscan_bf.length > 1: bit_index = '[{0}]'.format(str(int(last_bscan_bf.length)-1))
+            if last_bscan_bf.length > 1: bit_index = '[0]' #always 0 now
             else:                        bit_index = ''
             head_tdi = '{0}_tdo{1}'.format(last_bscan_bf.name.lower(), bit_index)    #Last one and include the bit index
           else:
@@ -326,22 +348,25 @@ class Register():
           if bf.length == 1:
             tdi_str = head_tdi
             tdo_str = '{0}_tdo'.format(bf.name.lower()) 
+            last_tdo_name = tdo_str
           else:
             #Need to shift tdis
-            tdi_str = '{'+'{0}_tdo[{1}],\n'.format(bf.name.lower(), str(bf.length-2))
+            tdi_str = '{'+'{0},\n'.format(head_tdi)
             for x in reversed(range(bf.length-1)):
               if x == 0:
-                tdi_str += '{0}{1}'.format(whitesp, head_tdi)
+                tdi_str += '{0}{1}_tdo[{2}]'.format(whitesp,  bf.name.lower(), str(x+1))
                 tdi_str += '}'
               else:
-                tdi_str += '{0}{1}_tdo[{2}],\n'.format(whitesp, bf.name.lower(), str(x-1)) 
+                tdi_str += '{0}{1}_tdo[{2}],\n'.format(whitesp, bf.name.lower(), str(x+1)) 
 
             #tdos
             tdo_str = '{'+'{0}_tdo[{1}],\n'.format(bf.name.lower(), str(bf.length-1))
             for x in reversed(range(bf.length-1)):
               if x == 0:
+              #if x == bf.length:
                 tdo_str += '{0}{1}_tdo[{2}]'.format(whitesp, bf.name.lower(), str(x))
                 tdo_str += '}'
+                last_tdo_name = '{0}_tdo[0]'.format(bf.name.lower())
               else:
                 tdo_str += '{0}{1}_tdo[{2}],\n'.format(whitesp, bf.name.lower(), str(x)) 
                 
@@ -365,7 +390,7 @@ class Register():
           #last_wire = bsr_po
           # Update the last_scan_ bitfield so the next BSR chain knows where to start
           last_bscan_bf= bf
-          last_tdo_name=tdo_str
+          #last_tdo_name=tdo_str      #handled earlier now
         
       ##########################
       # W1C....too easy
