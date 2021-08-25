@@ -45,6 +45,7 @@ addrw = '32'
 
 global_prefix = None
 pdf_file      = None
+gen_sphinx    = False
 
 top_reg_system = None
 
@@ -551,6 +552,7 @@ def get_args():
   parser.add_argument("-ch",  "-cheader",     help="Prints out the C #defines to a .h file", action='store_true')
   parser.add_argument("-pdf",                 help="Creates a PDF with register information", type=str)
   parser.add_argument("-aw",  "-addr_width",  help="Width of addr to use in reg_model", type=str)
+  parser.add_argument("-sphinx",              help="Prints a Sphinx/reStructuredText table for documentation", action='store_true')
   
   
   args = parser.parse_args()
@@ -605,6 +607,11 @@ def get_args():
     addrw = args.aw
     print('Using address width of {0}bits'.format(addrw))
   
+  if args.sphinx:
+    global gen_sphinx
+    gen_sphinx = True
+    print('Generating Sphinx/reStructuredText')
+  
 ############################
 # Run
 ############################
@@ -633,6 +640,8 @@ if pdf_file:
 #  top_reg_system.create_pdf(pdf)
 #  pdf.gen_pdf()
 
+if gen_sphinx:
+  top_reg_system.gen_sphinx_table()
 
 
 if cheader:

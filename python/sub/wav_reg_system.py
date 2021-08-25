@@ -381,6 +381,15 @@ class RegSystem():
       else:
         self.rb_list[key].print_uvm_reg_model_create(f)
       
+  ################################################
+  def gen_sphinx_table(self):
+    
+    for key in self.rb_list:
+      if isinstance(self.rb_list[key], wrb.RegBlock):
+        self.rb_list[key].gen_sphinx_table()
+      else:
+        self.rb_list[key].gen_sphinx_table()
+  
   
 #  ################################################
 #  def create_pdf(self, pdf, is_top=1):
