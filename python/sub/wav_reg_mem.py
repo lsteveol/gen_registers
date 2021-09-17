@@ -63,5 +63,6 @@ class RegMem(object):
     
     fh.write('    this.{0} = {0}_::type_id::create("{0}");\n'.format(self.name))
     fh.write('    this.{0}.configure(this);\n'.format(self.name))
-    fh.write('    this.{0}.add_hdl_path_slice("{0}", {1}\'h{2}, 32);\n'.format(self.name, self.addrw, re.sub(r'0x', '', hex(int(self.base_addr, 16)))))
+    #remove for backdoor
+    #fh.write('    this.{0}.add_hdl_path_slice("{0}", {1}\'h{2}, 32);\n'.format(self.name, self.addrw, re.sub(r'0x', '', hex(int(self.base_addr, 16)))))
     fh.write('    {0}.add_mem({1}, {2}\'h{3}, "RW");\n\n'.format(self.mapname, self.name, self.addrw, re.sub(r'0x', '', hex(int(self.base_addr, 16)))))

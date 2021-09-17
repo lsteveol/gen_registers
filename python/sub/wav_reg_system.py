@@ -42,6 +42,8 @@ class RegSystem():
     
     self.addrw    = '32'
     
+    self.hier     = ""
+    
   
   ################################################
   def set_base_addr(self, addr):
@@ -83,6 +85,24 @@ class RegSystem():
   def get_base_addr_str(self):
     return hex(self.addr_dec)
   
+  ################################################
+  def prefix_hier(self, h):
+    self.hier = h + "." + self.hier
+    print("prefix_hier for {} to {}".format(self.name, h))
+    
+    for key in self.rb_list:
+      if isinstance(self.rb_list[key], wrb.RegBlock):
+        #If not hier already set, then ignore
+        if self.rb_list[key].get_hier() != "":
+          self.rb_list[key].prefix_hier(h)
+          
+      elif isinstance(self.rb_list[key], RegSystem):
+        if self.rb_list[key].get_hier() != "":
+          self.rb_list[key].prefix_hier(h)
+  
+  def get_hier(self):
+    return self.hier  
+    
   ################################################
   def add_global_prefix(self, prefix):
     """Adds a prefix to the name"""

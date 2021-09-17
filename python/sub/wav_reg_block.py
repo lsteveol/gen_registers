@@ -58,13 +58,35 @@ class RegBlock(object):
     #Address Width
     self.addrw          = '32'
     
+    self.is_swi         = False
+    self.hier           = ''
+    
     
     self.wire_declare_list  = []
     self.wire_declare_spacing = 10
     
     self.clock_mux_name = clock_mux_name
     self.demet_name     = demet_name
-
+  
+  ################################################
+  def set_is_swi(self):
+    self.is_swi = True
+  
+  def get_is_swi(self):
+    return self.is_swi
+  
+  def set_hier(self, h):
+    print("set_hier for {} to {}".format(self.name, h))
+    self.hier = h
+  
+  def prefix_hier(self, h):
+    print("prefix_hier for {} to {}".format(self.name, h))
+    self.hier = h + "." + self.hier
+    print("new hier {}".format(self.hier))
+  
+  def get_hier(self):
+    return self.hier
+    
   ################################################
   def add_reg(self, reg, bypass_bf_chk=0):
     reg.add_offset(self.mapaddr)
@@ -231,11 +253,33 @@ class RegBlock(object):
       #remove the map base from the address
       addr_min_map = r.addr_dec - int(self.mapaddr, 16)
       addr_min_map = re.sub(r'0x', '', hex(addr_min_map))
-      fh.write('    this.{0}.add_hdl_path_slice("{1}", {2}\'h{3}, 32);\n'.format(self.name+r.name, self.name+r.name, self.addrw, addr_min_map))
-      fh.write('    {0}.add_reg({1}, {2}\'h{3}, "{4}");\n\n'.format(self.mapname, self.name+r.name, self.addrw, addr_min_map, r.get_reg_type()))
+      #fh.write('    this.{0}.add_hdl_path_slice("{1}", {2}\'h{3}, 32);\n'.format(self.name+r.name, self.name+r.name, self.addrw, addr_min_map))
+      fh.write('    {0}.add_reg({1}, {2}\'h{3}, "{4}");\n'.format(self.mapname, self.name+r.name, self.addrw, addr_min_map, r.get_reg_type()))
       
+      #HDL Path
+      if self.hier != "":
+        for bf in r.bf_list:
+          if self.get_is_swi():
+            if bf.type == 'RW' or bf.type == 'RO':
+              thisname = self.hier + "." + self.swi_module_name.lower() + r.name.lower() + "_q" + bf.get_index_str()
+              fh.write('    this.{0}.add_hdl_path_slice(.name("{1}"), .offset({2}), .size({3}));\n'.format(self.name+r.name, thisname, bf.lsb, bf.length))
+            else:
+              fh.write('    //no HDL path for Bitfield: {0}. Type {1} Not supported\n'.format(bf.name, bf.type))
+
+          else:
+            if bf.type == 'RW':
+              thisname = self.hier + ".reg_" + bf.name.lower()
+              fh.write('    this.{0}.add_hdl_path_slice(.name("{1}"), .offset({2}), .size({3}));\n'.format(self.name+r.name, thisname, bf.lsb, bf.length))
+            elif bf.type == 'RO':
+              thisname = self.hier + "." + bf.name.lower()
+              fh.write('    this.{0}.add_hdl_path_slice(.name("{1}"), .offset({2}), .size({3}));\n'.format(self.name+r.name, thisname, bf.lsb, bf.length))
+            else:
+              fh.write('    //no HDL path for Bitfield: {0}. Type {1} Not supported\n'.format(bf.name, bf.type))
+
       if r.notest:
         fh.write('    uvm_resource_db#(bit)::set(.scope("REG::*{0}"), .name("NO_REG_TESTS"), .val(1), .accessor(this));\n'.format((self.name+r.name)))
+      
+      fh.write('\n')
     
   ################################################
   def print_info(self, indent=''):
