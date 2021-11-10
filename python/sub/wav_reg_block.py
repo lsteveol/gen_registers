@@ -508,6 +508,10 @@ class RegBlock(object):
           f.write("  output wire {0:7} swi_{1}_muxed,\n".format(bf_width, bf.name.lower()))
           self.add_wire_decl(bf, ["{0}".format(bf.name.lower()), "swi_{0}_muxed".format(bf.name.lower())])
         
+        elif bf.type == "WO":
+          f.write("  output wire {0:7} swi_{1},\n".format(bf_width, bf.name.lower()))
+          self.add_wire_decl(bf, ["swi_{0}".format(bf.name.lower())])
+        
         elif bf.type == "W1C":
           f.write("  input  wire {0:7} w1c_in_{1},\n".format(bf_width, bf.name.lower()))
           f.write("  output wire {0:7} w1c_out_{1},\n".format(bf_width, bf.name.lower()))
@@ -736,7 +740,10 @@ class RegBlock(object):
         #RW with mux
         elif bf.type == "RW" and bf.has_mux == 1:
           f.write("  reg  {0:7} reg_{1};\n".format(bf_width, bf.name.lower()))
-      
+        
+        elif bf.type == "WO":
+          f.write("  reg  {0:7} reg_{1};\n".format(bf_width, bf.name.lower()))
+        
         elif bf.type == "W1C":
           f.write("  reg  {0:7} reg_w1c_{1};\n".format(bf_width, bf.name.lower()))
           f.write("  wire {0:7} reg_w1c_in_{1}_ff2;\n".format(bf_width, bf.name.lower()))
@@ -771,7 +778,7 @@ class RegBlock(object):
       for bf in r.bf_list:
         if bf.type != "RO" and bf.type != "WFIFO" and bf.type != "RFIFO":
           all_are_ro = 0
-          if bf.type == "RW":
+          if bf.type == "RW" or bf.type == "WO":
             atleast_1_rw = 1
       
       if all_are_ro == 0:
@@ -797,13 +804,13 @@ class RegBlock(object):
               wdata_index = "[{0}]".format(str(bf.lsb))
 
             #RW reg
-            if bf.type == "RW":
+            if bf.type == "RW" or bf.type == "WO":
               f.write("      reg_{0:34} <= RegWrData{1};\n".format(bf.name.lower(), wdata_index))
           
           #Default
           f.write("    end else begin\n".format(r.addr_hex))
           for bf in r.bf_list:
-            if bf.type == "RW":
+            if bf.type == "RW" or bf.type == "WO":
               f.write("      reg_{0:34} <= reg_{0};\n".format(bf.name.lower()))
           
           f.write("    end\n  end\n\n")
@@ -856,7 +863,7 @@ class RegBlock(object):
           endofline = ","
          
         #tie off reserved 
-        if bf.rsvd or bf.type == "WFIFO":
+        if bf.rsvd or bf.type == "WFIFO" or bf.type == "WO":
           f.write("          {0}'d0{1} //Reserved\n".format(bf.length, endofline))
         
         #This is just the register value

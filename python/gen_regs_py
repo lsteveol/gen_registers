@@ -39,13 +39,13 @@ demet_name      = 'demet_reset'
 # PyParsing Setup Grammar
 ############################
 rn    = Word(alphanums+'_').setResultsName('regname')
-rt    = oneOf("RW RO").setResultsName('regtype')
+rt    = oneOf("RW RO WO").setResultsName('regtype')
 rnotst= (Optional(Suppress(Literal('{')) + Literal('NO_REG_TEST') + Suppress(Literal('}')))).setResultsName('reg_no_test')
 rd    = Optional(Regex(".*")).setResultsName('regdesc')
 regpp = rn + rt + rnotst + rd
 
 bn   = Word(alphanums+'_').setResultsName('bfname')
-bt   = Optional(oneOf("RW") | oneOf("RO") | oneOf("W1C") | oneOf("WFIFO") | oneOf("RFIFO")).setResultsName('bftype')
+bt   = Optional(oneOf("RW") | oneOf("RO") | oneOf("W1C") | oneOf("WFIFO") | oneOf("RFIFO") | oneOf("WO")).setResultsName('bftype')
 bl   = Word(nums).setResultsName('bflen')
 br   = oneOf("'b 'h 'd 'PAR:'b 'PAR:'h 'PAR:'d").setResultsName('bfrad')
 #brv  = Word(nums+'ABCDEFabcdef').setResultsName('bfrval')

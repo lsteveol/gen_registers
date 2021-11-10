@@ -158,7 +158,7 @@ class Register():
       ##########################
       # RW Register
       ##########################
-      if bf.type == "RW":
+      if bf.type == "RW" or bf.type == "WO":
         default        = 'reg_'+bf.name.lower()
         if bf.has_mux:
           last_wire = "swi_"+bf.name.lower()+"_muxed_pre"
